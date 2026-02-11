@@ -49,7 +49,7 @@ const Navbar = ({ isCoderProfile }) => {
             github
           </a>
           <a // resume
-            href="https://drive.google.com/file/d/1zy9SSnL_Dlm1B418UXQaW_NPIBkthEil/view?usp=sharing"
+            href="https://drive.google.com/file/d/1Zuj2Xf-ikqmaKRRIzSmiIqhylULAYvub/view?usp=sharing"
             target="_blank"
             rel="noopener noreferrer"
             className={`text-white ${isCoderProfile ? 'hover:text-orange-400' : 'hover:text-cyan-300'} transition-colors duration-200`}

@@ -30,7 +30,7 @@ const Achievements = ({ isCoderProfile }) => {
             }`}
           >
             <h2 className={`text-5xl lg:text-7xl md:text-5xl sm:text-5xl font-light transition-colors duration-200 hover:${ isCoderProfile ? "text-orange-400" : "text-cyan-300" }`}>
-              {currentText ? "140+" : "100+"}
+              {currentText ? "500+" : "250+"}
             </h2>
             <p className="mt-2 lg:text-2xl md:text-2xl sm:text-xl font-light">
               {currentText ? "questions on Leetcode" : "videos produced"}
@@ -46,7 +46,7 @@ const Achievements = ({ isCoderProfile }) => {
             }`}
           >
             <h2 className={`text-5xl lg:text-7xl md:text-5xl sm:text-5xl font-light transition-colors duration-200 hover:${ isCoderProfile ? "text-orange-400" : "text-cyan-300" }`}>
-              {currentText ? "2" : "10+"}
+              {currentText ? "2" : "15+"}
             </h2>
             <p className="mt-2 lg:text-2xl md:text-2xl sm:text-xl font-light">
               {currentText ? "open-source contributions" : "clients served"}
@@ -62,7 +62,7 @@ const Achievements = ({ isCoderProfile }) => {
             }`}
           >
             <h2 className={`text-5xl lg:text-7xl md:text-5xl sm:text-5xl font-light transition-colors duration-200 hover:${ isCoderProfile ? "text-orange-400" : "text-cyan-300" }`}>
-              {currentText ? "3" : "5"}
+              {currentText ? "5" : "5"}
             </h2>
             <p className="mt-2 lg:text-2xl md:text-2xl sm:text-xl font-light">
               {currentText ? "projects built" : "stars rated work"}
