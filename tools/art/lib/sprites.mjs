@@ -7,7 +7,8 @@ import { loadRaster, rasterToSprite } from './image.mjs';
 const MANIFEST = 'sprites.json';
 export const STAGINGS = ['creative', 'tech'];
 const ID = /^[a-z0-9-]+$/;
-const SOURCES = ['greybox', 'generated', 'override'];
+// "scene": cut from the painted scene by scripts/import-scene.mjs. "code": drawn by scripts/make-small-sprites.mjs.
+const SOURCES = ['generated', 'override', 'scene', 'code'];
 
 /** "cat.tech" to { id: 'cat', staging: 'tech' }; null when the name breaks the rules. */
 export function parseName(name) {
@@ -37,7 +38,8 @@ function inline(value) {
 
 /**
  * One sprite per line, sorted by name, so a change to one sprite is a
- * one-line diff. scripts/make-greybox.mjs writes the same layout.
+ * one-line diff. The scripts that write sprites (scripts/make-small-sprites.mjs,
+ * scripts/import-scene.mjs) write the same layout.
  */
 export async function writeManifest(dir, manifest) {
   const lines = Object.keys(manifest).sort().map((key) => `  ${JSON.stringify(key)}: ${inline(manifest[key])}`);
@@ -63,12 +65,35 @@ function entryProblems(entry) {
   }
   if (typeof entry.emissive !== 'boolean') out.push('"emissive" must be true or false');
   if (!SOURCES.includes(entry.source)) out.push(`"source" must be one of ${SOURCES.join(', ')}`);
+  // where the painted scene places a sprite in the world; only scene sprites carry it
+  if (entry.at !== undefined && !pair(entry.at)) out.push('"at" must be [x, y] in whole pixels');
   return out;
 }
 
 /**
- * Checks one sprite file against the contract. `expect` ({ w, h } of one
- * frame) is what the build meant to write. Returns a list of problems.
+ * The palettes fitted to the painted scene, one per staging, read from
+ * <sceneDir>/<staging>/layout.json. A staging whose layout is missing has no
+ * entry. Each is shaped like a master palette as far as the checks need.
+ */
+export async function readScenePalettes(sceneDir) {
+  const out = {};
+  for (const staging of STAGINGS) {
+    let layout;
+    try {
+      layout = JSON.parse(await readFile(path.join(sceneDir, staging, 'layout.json'), 'utf8'));
+    } catch (err) {
+      if (err.code === 'ENOENT') continue;
+      throw new Error(`${path.join(sceneDir, staging, 'layout.json')}: ${err.message}`);
+    }
+    out[staging] = { exact: new Map(layout.palette.map((hex, i) => [parseInt(hex.slice(1), 16), i])) };
+  }
+  return out;
+}
+
+/**
+ * Checks one sprite file against the contract. `palette` is the one the
+ * sprite must keep to. `expect` ({ w, h } of one frame) is what the build
+ * meant to write. Returns a list of problems.
  */
 export async function checkSprite(file, entry, palette, expect) {
   const raster = await loadRaster(file);
@@ -95,8 +120,14 @@ export async function checkSprite(file, entry, palette, expect) {
   return out;
 }
 
-/** Checks a whole sprite folder. Returns { count, problems } with problems as readable lines. */
-export async function checkDir(dir, palette) {
+/**
+ * Checks a whole sprite folder. Sprites keep to the master palette, except
+ * those cut from the painted scene (source "scene"): each of those keeps to
+ * the palette fitted to its staging, in `scenePalettes`. Alpha is all or
+ * nothing for every sprite. Returns { count, problems } with problems as
+ * readable lines.
+ */
+export async function checkDir(dir, palette, scenePalettes = {}) {
   const manifest = await readManifest(dir);
   const names = (await readdir(dir)).filter((f) => f.endsWith('.png')).map((f) => f.slice(0, -4));
   const problems = [];
@@ -111,7 +142,16 @@ export async function checkDir(dir, palette) {
     if (!parsed.staging && STAGINGS.every((s) => names.includes(`${name}.${s}`))) {
       problems.push(`${name}.png: is hidden by ${name}.creative.png and ${name}.tech.png; remove it`);
     }
-    for (const problem of await checkSprite(path.join(dir, `${name}.png`), entryFor(manifest, name), palette)) {
+    const entry = entryFor(manifest, name);
+    let own = palette;
+    if (entry?.source === 'scene') {
+      own = scenePalettes[parsed.staging];
+      if (!own) {
+        problems.push(`${name}.png: a scene sprite needs its staging in its name, and that staging's palette (layout.json)`);
+        continue;
+      }
+    }
+    for (const problem of await checkSprite(path.join(dir, `${name}.png`), entry, own)) {
       problems.push(`${name}.png: ${problem}`);
     }
   }

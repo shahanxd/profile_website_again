@@ -17,7 +17,7 @@ export const TIERS: Record<Quality, Tier> = {
 
 /**
  * A guess from what the browser will say about the device. The scene itself
- * is cheap (three draw calls at art resolution), so this is about battery and
+ * is cheap (two draw calls a frame, at art resolution), so this is about battery and
  * weak phones, not about whether it can run. `forced` is the ?q= switch.
  */
 export function pickQuality(forced?: Quality): Quality {

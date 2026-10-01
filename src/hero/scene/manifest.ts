@@ -1,248 +1,182 @@
-import type { Emitter, Hotspot, Layer, Light, Scene, Vec2 } from './types';
+import type { Emitter, Layer, Scene } from './types';
 
 /**
  * The garden, as data. One place staged twice: creative is golden hour, tech
- * is the same garden at dusk. Positions are whole art pixels in the painted
- * world (400 x 200, origin top-left); the default desktop view shows the
- * 320 x 180 that starts at (40, 20). Framing lives in framing.ts.
+ * is the same garden at dusk. The painted world is the plate, 352 x 198 art
+ * pixels with its origin at the top-left; a 16:9 screen shows 320 x 180 of
+ * it, down to its last row. Framing lives in framing.ts.
  *
- * To change art, replace files in art/sprites and run `npm run art:build`.
- * To move something, change `at` here. Neither needs an engine change.
+ * The scene is painted: a plate with everything that never moves, the tree,
+ * and one sprite for each thing on the carpet. Those sprites carry their own
+ * place (scripts/import-scene.mjs takes it from the art), so a layer here
+ * only says what is drawn, in what order, and how deep it is. To change art,
+ * rebuild it and run `npm run art:build`. Neither needs an engine change.
  *
- * z bands: 10 sky things, 20 skyline, 30 wall, 35 lawn, 38-45 middle garden,
- * 50 tree, 60 carpet and everything on it, 70 things in the air, 80 foreground.
+ * What moves is small. A thing that changes shape is a strip of whole frames
+ * (the parrot, the cats). A thing that changes a few pixels inside itself is
+ * a patch: a tiny sprite of only those pixels, pinned over its pose at a point
+ * of the same name, showing nothing at rest. The frames and the points are
+ * made in import-scene.mjs. Everything is meant to be noticed second, not
+ * first: few, small and slow, and never two things asking for the eye at once.
+ *
+ * Depth: the plate is far (0.35), the tree and its lantern nearer (0.8), and
+ * everything on the carpet moves the full distance (1).
+ *
+ * z: 0 plate and lawn, 1-5 things in the far sky and on the water, 20 tree,
+ * 30 lantern, 40 air behind the carpet group, 45-63 the carpet group,
+ * 70 air in front.
  */
 
-// Layers that are the same thing placed several times.
-const stars: Vec2[] = [[204, 30], [226, 58], [247, 36], [271, 68], [286, 24], [323, 58], [341, 33], [150, -34], [201, -58], [232, -16], [176, -84]];
-const cypresses: Vec2[] = [[63, 138], [335, 138], [349, 138]];
-const flowerbeds: Vec2[] = [[108, 137], [148, 137], [212, 137], [330, 137]];
-const tufts: Vec2[] = [[24, 196], [88, 199], [152, 194], [203, 199], [262, 196], [318, 199], [372, 195]];
+/** A patch over one of the painted sprites. */
+const patch = (on: string, name: string, z: number, depth: number, rest: Partial<Layer>): Layer => ({
+  id: `${on}-${name}`,
+  sprite: `${on}-${name}`,
+  z,
+  depth,
+  attachTo: { layer: on, point: name },
+  ...rest,
+});
 
 const layers: Layer[] = [
-  // Sky. The sun sits half sunk behind the skyline; the moon rides high.
-  { id: 'sun', sprite: 'sun', in: ['creative'], z: 10, depth: 0.05, at: [276, 112] },
-  { id: 'moon', sprite: 'moon', in: ['tech'], z: 10, depth: 0.05, at: [302, 44] },
-  ...stars.map((at, i): Layer => ({
-    id: `star-${i}`,
-    sprite: 'star',
-    in: ['tech'],
-    z: 11,
-    depth: 0.05,
-    at,
-    anim: { mode: 'random-hold', fps: 5, every: 5 + (i % 4) },
-  })),
-  { id: 'cloud-a', sprite: 'cloud-a', z: 12, depth: 0.08, at: [214, 38], drift: { secondsPerPixel: 2, span: [-40, 440] } },
-  { id: 'cloud-b', sprite: 'cloud-b', z: 12, depth: 0.08, at: [318, 60], drift: { secondsPerPixel: 2.5, span: [-40, 440] } },
-  { id: 'cloud-c', sprite: 'cloud-c', z: 12, depth: 0.08, at: [120, 22], drift: { secondsPerPixel: 3, span: [-40, 440] } },
+  { id: 'plate', sprite: 'plate', z: 0, depth: 0.35 },
+  // the lawn, carried on below the plate for screens taller than the painted world
+  { id: 'lawn', sprite: 'lawn', z: 0, depth: 0.35 },
+  // the fountain's jet never quite holds still
+  patch('plate', 'jet', 1, 0.35, { anim: { mode: 'loop', fps: 2.5 } }),
+  // dusk: three of the painted stars twinkle, rarely (most screens have one or two of them in view)
+  ...(['star-a', 'star-b', 'star-c'] as const).map(
+    (point, i): Layer => ({
+      id: `twinkle-${i}`,
+      sprite: 'twinkle',
+      in: ['tech'],
+      z: 1,
+      depth: 0.35,
+      attachTo: { layer: 'plate', point },
+      anim: { mode: 'random-hold', fps: 4, every: 8 + i * 3 },
+    }),
+  ),
+  // golden hour: two kites far off over the old city, rocking on their strings
+  { id: 'kite-a', sprite: 'kite-a', in: ['creative'], z: 5, depth: 0.35, sway: { by: [1, 1], period: 7 } },
+  { id: 'kite-b', sprite: 'kite-b', in: ['creative'], z: 5, depth: 0.35, sway: { by: [1, 1], period: 9 } },
 
-  // The old city, far off.
-  { id: 'skyline', sprite: 'skyline', z: 20, depth: 0.15, at: [0, 108] },
-  { id: 'windows', sprite: 'windows', in: ['tech'], z: 21, depth: 0.15, at: [0, 108] },
-  { id: 'kite-a', sprite: 'kite-a', in: ['creative'], z: 22, depth: 0.15, at: [216, 52], anim: { mode: 'loop', fps: 2 }, sway: { by: [2, 1], period: 7 } },
-  { id: 'kite-b', sprite: 'kite-b', in: ['creative'], z: 22, depth: 0.15, at: [338, 46], anim: { mode: 'loop', fps: 2 }, sway: { by: [1, 2], period: 9 } },
+  { id: 'tree', sprite: 'tree', z: 20, depth: 0.8 },
+  { id: 'lantern', sprite: 'lantern', z: 30, depth: 0.8 },
+  // lit at dusk: the flame burns steady and gutters now and then
+  patch('lantern', 'flame', 31, 0.8, { in: ['tech'], anim: { mode: 'random-hold', fps: 6, every: 1.6 } }),
 
-  // Garden wall with its gate, and the cypresses standing against it.
-  { id: 'wall', sprite: 'wall', z: 30, depth: 0.3, at: [0, 114] },
-  ...cypresses.map((at, i): Layer => ({ id: `cypress-${i}`, sprite: 'cypress', z: 31, depth: 0.3, at })),
+  // The carpet and bolster are painted on the plate; these are the things on them.
+  { id: 'table', sprite: 'table', z: 45, depth: 1 },
+  // The tablet on the side table is only a prop, kept alive: by day a cursor waits on its dark screen,
+  // at dusk its glow rises and falls.
+  { id: 'cursor', sprite: 'cursor', in: ['creative'], z: 46, depth: 1, at: [1, 2], attachTo: { layer: 'table', point: 'screen' }, anim: { mode: 'loop', fps: 1 } },
+  patch('table', 'glow', 46, 1, { in: ['tech'], anim: { mode: 'pingpong', fps: 0.5 } }),
 
-  // The lawn lies under everything from here on.
-  { id: 'lawn', sprite: 'lawn', z: 35, depth: 1, at: [0, 138] },
+  { id: 'figure', sprite: 'figure', z: 50, depth: 1 },
+  // creative: a stroke of the stylus now and then
+  patch('figure', 'hand', 51, 1, { in: ['creative'], anim: { mode: 'random-hold', fps: 3, every: 4 } }),
+  // tech: typing in short bursts, the laptop's light barely moving, and the parrot asleep behind the shoulder
+  patch('figure', 'hands', 51, 1, { in: ['tech'], anim: { mode: 'random-hold', fps: 7, every: 3.2 } }),
+  patch('figure', 'screen', 51, 1, { in: ['tech'], anim: { mode: 'pingpong', fps: 0.8 } }),
+  patch('figure', 'parrot', 51, 1, { in: ['tech'], anim: { mode: 'pingpong', fps: 0.35 } }),
 
-  // Middle of the garden: beds, the pavilion, the rill and its pool.
-  ...flowerbeds.map((at, i): Layer => ({ id: `flowerbed-${i}`, sprite: 'flowerbed', z: 38, depth: 0.5, at })),
-  { id: 'pavilion', sprite: 'pavilion', z: 40, depth: 0.5, at: [244, 80] },
-  { id: 'pavilion-glow', sprite: 'pavilion-glow', in: ['tech'], z: 41, depth: 0.5, at: [0, 0], attachTo: { layer: 'pavilion', point: 'glow' } },
-  { id: 'water', sprite: 'water', z: 43, depth: 0.5, at: [150, 140] },
-  { id: 'fountain', sprite: 'fountain', z: 44, depth: 0.5, at: [0, 0], attachTo: { layer: 'water', point: 'jet' }, anim: { mode: 'loop', fps: 6 } },
-
-  // The tree: one trunk, blossom or green leaves, and the lantern on the bough that reaches over the carpet.
-  { id: 'tree', sprite: 'tree', z: 50, depth: 0.75, at: [98, 170] },
-  {
-    id: 'lantern',
-    sprite: 'lantern',
-    z: 51,
-    depth: 0.75,
-    at: [0, 0],
-    attachTo: { layer: 'tree', point: 'lantern' },
-    // lit at dusk: the flame burns steady and gutters now and then (the light it throws is in `lights` below)
-    when: { tech: { anim: { mode: 'random-hold', fps: 4, every: 2.5 } } },
-  },
-  { id: 'canopy', sprite: 'canopy', z: 52, depth: 0.75, at: [0, 0] },
-
-  // The carpet and everything on it. This group is what a phone frames.
-  { id: 'carpet', sprite: 'carpet', z: 60, depth: 1, at: [124, 164] },
-  { id: 'bolster', sprite: 'bolster', z: 61, depth: 1, at: [130, 161] },
-  {
-    id: 'character',
-    sprite: 'character',
-    z: 62,
-    depth: 1,
-    // creative: cross-legged, sketching in bursts
-    at: [150, 172],
-    anim: { mode: 'random-hold', fps: 4, every: 3 },
-    // tech: leaning back on the bolster, legs out, typing in bursts
-    when: { tech: { at: [140, 172], anim: { mode: 'random-hold', fps: 5, every: 2.5 } } },
-  },
-  {
-    id: 'parrot',
-    sprite: 'parrot',
-    z: 63,
-    depth: 1,
-    at: [0, 0],
-    // on the raised knee, awake; at dusk asleep on the shoulder, breathing slowly
-    attachTo: { layer: 'character', point: 'perch' },
-    anim: { mode: 'random-hold', fps: 4, every: 5 },
-    when: { tech: { anim: { mode: 'pingpong', fps: 0.7 } } },
-  },
+  // creative: awake beside him; it blinks and draws its head back
+  { id: 'parrot', sprite: 'parrot', in: ['creative'], z: 55, depth: 1, anim: { mode: 'random-hold', fps: 3, every: 7 } },
+  { id: 'tray', sprite: 'tray', z: 58, depth: 1 },
+  // sitting up, an ear flicks; asleep at dusk, it breathes
   {
     id: 'cat',
     sprite: 'cat',
-    z: 64,
+    z: 60,
     depth: 1,
-    at: [213, 174],
-    anim: { mode: 'random-hold', fps: 3, every: 6 },
-    when: { tech: { at: [212, 175], anim: { mode: 'pingpong', fps: 0.5 } } },
+    anim: { mode: 'random-hold', fps: 4, every: 9 },
+    when: { tech: { anim: { mode: 'pingpong', fps: 0.3 } } },
   },
-  { id: 'tray', sprite: 'tray', z: 65, depth: 1, at: [196, 168] },
-  { id: 'clutter', sprite: 'clutter', z: 66, depth: 1, at: [130, 181], when: { tech: { anim: { mode: 'loop', fps: 1 } } } },
-  // dusk: a mosquito coil smoulders at the front of the carpet
-  { id: 'coil', sprite: 'coil', in: ['tech'], z: 66, depth: 1, at: [172, 180] },
-  { id: 'side-table', sprite: 'side-table', z: 67, depth: 1, at: [254, 162] },
-  // The tablet prop. On wide screens the site menu is laid over the top of its screen (see hotspots);
-  // the cursor waits on the line below, which is what keeps the prop alive on every screen.
-  { id: 'tablet', sprite: 'tablet', z: 68, depth: 1, at: [236, 148] },
-  { id: 'cursor', sprite: 'cursor', z: 69, depth: 1, at: [1, 22], attachTo: { layer: 'tablet', point: 'screen' }, anim: { mode: 'loop', fps: 2 } },
-
-  // Foreground: nearest to the eye, so it moves the most.
-  { id: 'tulips', sprite: 'tulips', z: 80, depth: 1.15, at: [42, 200] },
-  ...tufts.map((at, i): Layer => ({ id: `tuft-${i}`, sprite: 'tuft', z: 80, depth: 1.15, at })),
+  { id: 'rover', sprite: 'rover', in: ['tech'], z: 62, depth: 1 },
+  // its light dips for a moment every few seconds
+  patch('rover', 'light', 63, 1, { in: ['tech'], anim: { mode: 'random-hold', fps: 2.5, every: 3.5 } }),
 ];
 
-// Things in the air. All of it is meant to be noticed second, not first: few, small and slow.
 const emitters: Emitter[] = [
-  // creative: blossom coming down from the canopy on a light breeze
+  // creative: blossom coming down from the canopy on a light breeze. A petal sets off from inside the
+  // blossom, where it cannot be seen to appear, and lasts until it is down among the beds or on the lawn.
   {
     id: 'petals',
     in: ['creative'],
     sprite: 'petal',
     z: 70,
     depth: 0.9,
-    count: 12,
-    area: [20, 62, 170, 26],
-    move: { kind: 'drift', velocity: [2.5, 7], jitter: [1.5, 1.2], life: [11, 14], gap: [0, 2.5], wobble: { by: 3, period: 4 } },
+    count: 9,
+    area: [15, 20, 125, 35],
+    move: { kind: 'drift', velocity: [2, 6], jitter: [1.2, 1], life: [15, 19], gap: [0, 4], wobble: { by: 3, period: 5 } },
     anim: { mode: 'loop', fps: 2 },
-  },
-  // tech: the odd leaf
-  {
-    id: 'leaves',
-    in: ['tech'],
-    sprite: 'leaf',
-    z: 70,
-    depth: 0.9,
-    count: 1,
-    area: [30, 62, 150, 26],
-    move: { kind: 'drift', velocity: [1.5, 8], jitter: [1, 1], life: [10, 13], gap: [9, 20], wobble: { by: 2, period: 5 } },
-    anim: { mode: 'loop', fps: 1.5 },
   },
   // creative: steam off the coffee
   {
     id: 'steam',
     in: ['creative'],
     sprite: 'steam',
-    z: 69,
+    z: 59,
     depth: 1,
-    count: 3,
+    count: 2,
     area: [-1, -1, 2, 1],
     from: { layer: 'tray', point: 'steam' },
     move: { kind: 'drift', velocity: [0.4, -3.2], jitter: [0.3, 0.6], life: [2.6, 3.4], gap: [0.2, 1.2], wobble: { by: 1, period: 2.6 } },
     anim: 'life',
   },
-  // tech: a thread of smoke from the mosquito coil
-  {
-    id: 'smoke',
-    in: ['tech'],
-    sprite: 'smoke',
-    z: 69,
-    depth: 1,
-    count: 2,
-    area: [0, -1, 1, 1],
-    from: { layer: 'coil', point: 'tip' },
-    move: { kind: 'drift', velocity: [0.5, -2.6], jitter: [0.3, 0.4], life: [4.5, 6], gap: [0, 0.8], wobble: { by: 1.5, period: 3.4 } },
-    anim: 'life',
-  },
-  // tech: fireflies low over the lawn, each glowing up now and then. They pass behind the carpet and whoever is on it.
-  {
-    id: 'fireflies',
-    in: ['tech'],
-    sprite: 'firefly',
-    z: 59,
-    depth: 0.9,
-    count: 5,
-    area: [112, 136, 150, 22],
-    move: { kind: 'wander', reach: [10, 5], period: [9, 17] },
-    anim: { mode: 'random-hold', fps: 5, every: 6 },
-  },
+  // tech: fireflies low over the lawn, dark until one glows: behind the carpet and whoever is on it, over the
+  // open lawn beside the pool, and one nearer. None over the carpet itself.
+  ...(
+    [
+      ['behind', [20, 140, 140, 8], 2],
+      ['beside', [150, 140, 180, 22], 3],
+      ['near', [215, 170, 110, 16], 1],
+    ] as const
+  ).map(
+    ([name, area, count]): Emitter => ({
+      id: `fireflies-${name}`,
+      in: ['tech'],
+      sprite: 'firefly',
+      z: 40,
+      depth: 0.9,
+      count,
+      area: [...area],
+      move: { kind: 'wander', reach: [8, 4], period: [9, 17] },
+      anim: { mode: 'random-hold', fps: 4, every: 7 },
+    }),
+  ),
   // tech: two moths round the lit lantern
   {
     id: 'moths',
     in: ['tech'],
     sprite: 'moth',
-    z: 53,
-    depth: 0.75,
+    z: 32,
+    depth: 0.8,
     count: 2,
     area: [0, 0, 0, 0],
     from: { layer: 'lantern', point: 'flame' },
     move: { kind: 'orbit', radius: [9, 5], period: [5, 8] },
     anim: { mode: 'loop', fps: 4 },
   },
-  // both: light catching the water, in the rill either side of the pool and in the pool itself
+  // both: light catching the water, in the pool either side of the fountain and in the rill above it
   ...(
     [
-      ['rill', 'rill', [0, 0, 46, 2], 2],
-      ['pool', 'pool', [1, 1, 24, 7], 2],
-      ['tail', 'rill', [75, 0, 19, 2], 1],
+      ['pool-left', [0, 0, 26, 8], 2],
+      ['pool-right', [0, 0, 26, 8], 2],
+      ['rill', [0, 0, 4, 9], 1],
     ] as const
   ).map(
-    ([name, point, area, count]): Emitter => ({
-      id: `glints-${name}`,
+    ([point, area, count]): Emitter => ({
+      id: `glints-${point}`,
       sprite: 'glint',
-      z: 45,
-      depth: 0.5,
+      z: 2,
+      depth: 0.35,
       count,
       area: [...area],
-      from: { layer: 'water', point },
+      from: { layer: 'plate', point },
       move: { kind: 'drift', velocity: [0, 0], life: [0.7, 1.1], gap: [2, 6] },
       anim: 'life',
     }),
   ),
 ];
 
-const lights: Light[] = [
-  // dusk: the pool of light under the lantern, on the carpet and the lawn round it; it dips when the flame does
-  { in: ['tech'], at: [176, 173], radius: [46, 14], depth: 1, flame: { layer: 'lantern', strength: [1, 0.96, 0.98] } },
-];
-
-const hotspots: Hotspot[] = [
-  // The tablet prop's screen, down to the line the cursor waits on: the site menu's real links are laid over it.
-  { id: 'menu', layer: 'tablet', point: 'screen', size: [18, 21] },
-];
-
-export const scene: Scene = {
-  layers,
-  emitters,
-  lights,
-  hotspots,
-  backdrop: {
-    creative: {
-      // above the painted world the sky cools rather than darkens, so the copy on a phone keeps its contrast
-      sky: [[-100, 'moonlight'], [-25, 'mauve'], [50, 'coral'], [92, 'apricot'], [124, 'gold']],
-      ground: [[130, 'grass'], [200, 'grass'], [290, 'leaf']],
-    },
-    tech: {
-      // a thin afterglow is left along the horizon
-      sky: [[-110, 'ink'], [-30, 'indigo'], [40, 'blueviolet'], [96, 'periwinkle'], [116, 'mauve'], [128, 'coral']],
-      ground: [[130, 'duskgrass'], [200, 'duskgrass'], [290, 'cypress']],
-    },
-  },
-};
+export const scene: Scene = { layers, emitters };

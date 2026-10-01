@@ -303,7 +303,7 @@ export async function build(opts) {
     }
   }
   // A replaced sprite's entry stays, as a copy of the new one, because
-  // scripts/make-greybox.mjs redraws every name that is not marked as real art.
+  // scripts/make-small-sprites.mjs redraws every name of its own that is not marked as real art.
   for (const { name, by } of stale) {
     if (manifest[name]) manifest[name] = by.entry;
     if (!onDisk.includes(name)) continue;

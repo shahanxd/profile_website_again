@@ -1,5 +1,5 @@
 import type { SplitId } from '../../split/types';
-import type { Anim, Drift, Emitter, Scene, Sway, Vec2 } from '../scene/types';
+import type { Anim, Emitter, Scene, Sway, Vec2 } from '../scene/types';
 
 /**
  * Turns the manifest into what is drawn: for one staging, the list of sprites
@@ -20,28 +20,26 @@ export interface SpriteRect {
   frames: number;
   anchor: Vec2;
   points: Record<string, Vec2>;
+  /** Where the art places the sprite's anchor in the world: the painted scene's sprites have this. */
+  at?: Vec2;
 }
 
 /** public/art/atlas.json, as written by scripts/pack-atlas.mjs. */
 export interface AtlasData {
   version: string;
   size: Vec2;
-  colors: Record<string, string>;
   sprites: Record<string, SpriteRect>;
 }
 
 /** A layer resolved for one staging. x and y are the sprite's top-left at rest, in world pixels. */
 export interface Item {
   sprite: SpriteRect;
-  /** The same sprite in daylight colours, shown where lamplight falls on it. The sprite itself when it has no other form. */
-  lit: SpriteRect;
   x: number;
   y: number;
   depth: number;
   parent: Item | null;
   anim?: Anim;
   sway?: Sway;
-  drift?: Drift;
   /** Fixed per layer, so its uneven timing is the same on every run. */
   seed: number;
 }
@@ -59,35 +57,17 @@ export interface Source {
 /** Writes a source's particles into `out` from index `at`; (x, y) is where the emitter's world origin sits in the view. Returns the next index. */
 export type Emit = (source: Source, t: number, x: number, y: number, out: Int16Array, at: number) => number;
 
-interface StageLight {
-  x: number;
-  y: number;
-  radius: Vec2;
-  depth: number;
-  flame: Item | null;
-  strength: number[];
-}
-
 export interface Stage {
   /** Back to front. */
   entries: (Item | Source)[];
   /** The most instances this stage ever writes. */
   capacity: number;
-  light: StageLight | null;
-  /** Hotspot id to the layer it sits on, its corner within that sprite, and its size. */
-  hotspots: Record<string, { item: Item; point: Vec2; size: Vec2 }>;
   /** Layers and emitters left out because their sprite, parent or point does not exist. */
   missing: string[];
 }
 
-/**
- * Whole numbers per sprite sent to the GPU: x, y, w, h on screen, the frame's
- * corner in the atlas, then the corner of the same frame in daylight colours.
- */
-export const INSTANCE_SIZE = 8;
-
-/** Whole numbers that describe the lamplight for one frame: centre x, y in view pixels, radii, and strength out of 64. */
-export const LIGHT_SIZE = 5;
+/** Whole numbers per sprite sent to the GPU: x, y, w, h on screen, then the frame's corner in the atlas. */
+export const INSTANCE_SIZE = 6;
 
 export function buildStage(scene: Scene, split: SplitId, atlas: AtlasData): Stage {
   const missing: string[] = [];
@@ -107,12 +87,12 @@ export function buildStage(scene: Scene, split: SplitId, atlas: AtlasData): Stag
     done.set(id, null); // guards against a layer attached to itself
     const layer = layers.get(id);
     // The staging's own sprite when there is one, otherwise the shared sprite.
-    const shared = layer && atlas.sprites[layer.sprite];
-    const sprite = (layer && atlas.sprites[`${layer.sprite}.${split}`]) ?? shared;
+    const sprite = layer && (atlas.sprites[`${layer.sprite}.${split}`] ?? atlas.sprites[layer.sprite]);
     if (!layer || !sprite) return null;
 
     let parent: Item | null = null;
-    let [x, y] = layer.at;
+    // An attached layer is placed from its parent's point. Any other is where the manifest says, or where its art says.
+    let [x, y] = layer.at ?? (layer.attachTo ? undefined : sprite.at) ?? [0, 0];
     if (layer.attachTo) {
       parent = resolve(layer.attachTo.layer);
       const point = parent?.sprite.points[layer.attachTo.point];
@@ -122,15 +102,12 @@ export function buildStage(scene: Scene, split: SplitId, atlas: AtlasData): Stag
     }
     const item: Item = {
       sprite,
-      // A shared sprite baked for dusk still has its daylight form in the atlas, pixel for pixel.
-      lit: shared && shared.w === sprite.w && shared.h === sprite.h && shared.frames === sprite.frames ? shared : sprite,
       x: x - sprite.anchor[0],
       y: y - sprite.anchor[1],
       depth: parent ? parent.depth : layer.depth,
       parent,
       anim: layer.anim,
       sway: layer.sway,
-      drift: layer.drift,
       seed: layer.seed,
     };
     done.set(id, item);
@@ -157,24 +134,7 @@ export function buildStage(scene: Scene, split: SplitId, atlas: AtlasData): Stag
   });
   drawn.sort((a, b) => a.z - b.z || a.order - b.order);
 
-  const lamp = scene.lights.find(here);
-  const light = lamp && {
-    x: lamp.at[0],
-    y: lamp.at[1],
-    radius: lamp.radius,
-    depth: lamp.depth,
-    flame: lamp.flame ? resolve(lamp.flame.layer) : null,
-    strength: lamp.flame?.strength ?? [1],
-  };
-
-  const hotspots: Stage['hotspots'] = {};
-  for (const spot of scene.hotspots) {
-    const item = resolve(spot.layer);
-    const point = item?.sprite.points[spot.point];
-    if (item && point) hotspots[spot.id] = { item, point, size: spot.size };
-  }
-
-  return { entries: drawn.map((d) => d.entry), capacity, light: light ?? null, hotspots, missing };
+  return { entries: drawn.map((d) => d.entry), capacity, missing };
 }
 
 /** A repeatable number from 0 up to 1 for a pair of whole numbers. */
@@ -210,13 +170,7 @@ export function moved(item: Item, axis: 0 | 1, t: number, shift: Vec2): number {
   }
   if (item.parent) return d + moved(item.parent, axis, t, shift);
   // Rounded per layer, so parallax moves each layer by whole art pixels.
-  d += Math.round(shift[axis] * item.depth);
-  if (item.drift && axis === 0) {
-    const [from, to] = item.drift.span;
-    const travelled = item.x - from + Math.floor(t / item.drift.secondsPerPixel);
-    d += from + (travelled % (to - from)) - item.x;
-  }
-  return d;
+  return d + Math.round(shift[axis] * item.depth);
 }
 
 /**
@@ -236,53 +190,13 @@ export function writeInstances(stage: Stage, t: number, shift: Vec2, camera: Vec
       at = emit(entry, t, x - camera[0], y - camera[1], out, at);
       continue;
     }
-    const { sprite, lit } = entry;
-    const frame = frameAt(entry.anim, sprite.frames, t, entry.seed) * sprite.w;
+    const { sprite } = entry;
     out[at++] = entry.x + moved(entry, 0, t, shift) - camera[0];
     out[at++] = entry.y + moved(entry, 1, t, shift) - camera[1];
     out[at++] = sprite.w;
     out[at++] = sprite.h;
-    out[at++] = sprite.x + frame;
+    out[at++] = sprite.x + frameAt(entry.anim, sprite.frames, t, entry.seed) * sprite.w;
     out[at++] = sprite.y;
-    out[at++] = lit.x + frame;
-    out[at++] = lit.y;
   }
   return at / INSTANCE_SIZE;
-}
-
-/** Writes the stage's lamplight for time `t` into `out` (LIGHT_SIZE numbers). Strength 0 means there is none. */
-export function writeLight(stage: Stage, t: number, shift: Vec2, camera: Vec2, out: Int32Array) {
-  const { light } = stage;
-  out.fill(0);
-  if (!light) return;
-  const frame = light.flame ? frameAt(light.flame.anim, light.flame.sprite.frames, t, light.flame.seed) : 0;
-  out[0] = light.x + Math.round(shift[0] * light.depth) - camera[0];
-  out[1] = light.y + Math.round(shift[1] * light.depth) - camera[1];
-  out[2] = light.radius[0];
-  out[3] = light.radius[1];
-  out[4] = Math.round(64 * (light.strength[frame] ?? 1));
-}
-
-/**
- * Whether view pixel (x, y) is lit. `bayer` is the pixel's ordered-dither value
- * (0..63) at (x - light[0], y - light[1]), so the pattern travels with the
- * ground. Whole numbers only: the sprite shader does the same sum and the two
- * must agree on every pixel.
- */
-export function inLight(light: Int32Array, x: number, y: number, bayer: number): boolean {
-  const dx = x - light[0];
-  const dy = y - light[1];
-  const [, , rx, ry, strength] = light;
-  const full = rx * rx * ry * ry;
-  const q = dx * dx * ry * ry + dy * dy * rx * rx;
-  // brightest in the middle, thinning to nothing at the rim
-  return q < full && 2 * strength * (full - q) > (2 * bayer + 1) * full;
-}
-
-/** Where a hotspot is at time `t`: x, y, width, height in world pixels. */
-export function hotspotAt(stage: Stage, id: string, t: number, shift: Vec2): [number, number, number, number] | null {
-  const spot = stage.hotspots[id];
-  if (!spot) return null;
-  const { item, point, size } = spot;
-  return [item.x + point[0] + moved(item, 0, t, shift), item.y + point[1] + moved(item, 1, t, shift), size[0], size[1]];
 }

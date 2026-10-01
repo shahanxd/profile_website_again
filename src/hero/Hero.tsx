@@ -4,52 +4,64 @@ import { site } from '../content/site';
 import { BLOCK, COVER_MS, heldDissolve, originFor, REVEAL_MS, selfDissolving } from '../split/dissolve';
 import { getSplitState, useSplit } from '../split/store';
 import type { GardenEngine } from './engine';
-import { frameView, watchDeviceSize } from './engine/camera';
+import { loadAtlas } from './engine/atlas';
+import { frameView, isPortrait, watchDeviceSize } from './engine/camera';
 import { framing } from './scene/framing';
-import { MENU_MIN_WIDTH, TabletMenu } from './TabletMenu';
 import './hero.css';
 
 const percent = (fraction: number) => `${fraction * 100}%`;
 
+/** The poster holds the whole painted world and the lawn below it. */
+const POSTER = { width: framing.world[0], height: framing.world[1] + framing.lawn };
+
 // framing.ts and the switch timings, handed to hero.css so the scene is already in place before any script runs.
 const heroVars = {
   '--world-w': framing.world[0],
-  '--poster-h': framing.poster.height,
+  '--world-h': framing.world[1],
+  '--rows': POSTER.height,
   '--focus-x': framing.focus[0],
-  '--focus-y': framing.focus[1] - framing.poster.top,
-  '--floor': framing.floor - framing.poster.top,
+  '--focus-y': framing.focus[1],
+  '--floor': framing.floor,
   '--land-h': framing.landscape.height,
-  '--land-x': percent(framing.landscape.target[0]),
-  '--land-y': percent(framing.landscape.target[1]),
+  '--land-w': framing.landscape.width,
+  '--land-left': framing.landscape.left,
+  '--land-y': percent(framing.landscape.target),
   '--port-w': framing.portrait.width,
-  '--port-x': percent(framing.portrait.target[0]),
-  '--port-y': percent(framing.portrait.target[1]),
-  '--port-from': framing.portrait.span[0],
-  '--port-to': framing.portrait.span[1],
+  '--port-h': framing.portrait.height,
   '--cover-ms': `${COVER_MS}ms`,
   '--reveal-ms': `${REVEAL_MS}ms`,
 } as CSSProperties;
 
 /**
  * Puts the poster on exactly the pixel grid the canvas uses, so the canvas can
- * take over without a jump, and gives the stylesheet the true size of an art pixel.
+ * take over without a jump, and gives the stylesheet the true size of an art
+ * pixel and the true place of the world, which the copy is set against.
  */
 function placeScene(hero: HTMLElement, poster: HTMLImageElement, canvas: HTMLCanvasElement, deviceW: number, deviceH: number) {
   if (!deviceW || !deviceH) return;
-  const view = frameView(deviceW, deviceH, framing);
-  const cssPerArt = (canvas.getBoundingClientRect().width / deviceW) * view.k;
+  const view = frameView(deviceW, deviceH, framing, isPortrait());
+  const cssPerDevice = canvas.getBoundingClientRect().width / deviceW;
+  const cssPerArt = cssPerDevice * view.k;
   hero.style.setProperty('--k', `${cssPerArt}px`);
-  // Scaled and moved as a transform, from its natural size. The stylesheet's way (left, top, width and height)
-  // goes through layout, which keeps lengths to 1/64 px and, in some browser modes, snaps boxes to whole CSS
-  // pixels: in Chrome's phone emulation at a pixel ratio of 3 that put the poster one device pixel below the
-  // canvas. A transform is applied as given.
+  hero.style.setProperty('--poster-left', `${-view.x * cssPerArt}px`);
+  hero.style.setProperty('--poster-top', `${-view.y * cssPerArt}px`);
+  // Scaled and moved as a transform. The stylesheet's way (left, top, width and height) goes through layout,
+  // which keeps lengths to 1/64 px and snaps boxes to whole pixels: at a pixel ratio of 3 in Chrome's phone
+  // emulation that put the poster one device pixel below the canvas. A transform is applied as given.
+  //
+  // The box that is scaled must itself be a whole number of device pixels each way, or layout rounds it and
+  // the picture is stretched by that fraction: far down a tall screen, rows land a device pixel out. At its
+  // natural size (one CSS pixel per art pixel) the box is whole at most pixel ratios; where it is not, it is
+  // laid out one device pixel per art pixel instead, which is whole at every ratio.
+  const whole = (cssPixels: number) => Math.abs(cssPixels * devicePixelRatio - Math.round(cssPixels * devicePixelRatio)) < 1e-3;
+  const box = whole(POSTER.width) && whole(POSTER.height) ? 1 : cssPerDevice;
   Object.assign(poster.style, {
     left: '0',
     top: '0',
-    width: `${framing.world[0]}px`,
-    height: `${framing.poster.height}px`,
+    width: `${POSTER.width * box}px`,
+    height: `${POSTER.height * box}px`,
     transformOrigin: '0 0',
-    transform: `translate(${-view.x * cssPerArt}px, ${(framing.poster.top - view.y) * cssPerArt}px) scale(${cssPerArt})`,
+    transform: `translate(${-view.x * cssPerArt}px, ${-view.y * cssPerArt}px) scale(${cssPerArt / box})`,
   });
   selfDissolving.cell = BLOCK * cssPerArt; // the page overlay matches its cells to the garden's dissolve blocks
 }
@@ -76,8 +88,6 @@ export function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GardenEngine | null>(null);
   const [live, setLive] = useState(false);
-  // The size of the tablet prop's screen in CSS pixels, when it is big enough to carry the menu.
-  const [menu, setMenu] = useState<[number, number] | null>(null);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current!;
@@ -101,11 +111,13 @@ export function Hero() {
 
     // The poster and the copy are on screen before the engine is even requested.
     const cancelStart = afterPaint(async () => {
+      // The sprites are asked for at the same moment as the engine, not after it has arrived.
+      const atlas = loadAtlas(`${import.meta.env.BASE_URL}art/atlas`);
       try {
         const { createGardenEngine } = await import('./engine');
-        if (gone) return;
+        if (gone) throw new Error('unmounted');
         const { split: startSplit, motion: startMotion } = getSplitState();
-        const engine = await createGardenEngine(canvas, { split: startSplit, motion: startMotion, onLive });
+        const engine = await createGardenEngine(canvas, { split: startSplit, motion: startMotion, onLive, atlas });
         if (gone) return engine.destroy();
         engineRef.current = engine;
         cleanups.push(() => engine.destroy());
@@ -116,19 +128,6 @@ export function Hero() {
         const held = heldDissolve(getSplitState().split);
         if (held?.covering) engine.transition(held.to, originFor(held.to, null), COVER_MS, held.local);
 
-        engine.onLayout(({ hotspots }) => {
-          const screen = hotspots.menu;
-          if (!screen) return setMenu(null);
-          // The screen moves with the pointer. Its place goes straight to the stylesheet, so the menu steps in the
-          // same frame as the canvas; React only hears about its size, which changes with the window alone.
-          sectionRef.current?.style.setProperty('--menu-x', `${screen[0]}px`);
-          sectionRef.current?.style.setProperty('--menu-y', `${screen[1]}px`);
-          const [x, y, width, height] = screen;
-          // No menu where the screen is too small to read, or out of frame (a tall window does not show the prop at all).
-          const usable = width >= MENU_MIN_WIDTH && x >= 0 && y >= 0 && x + width <= canvas.clientWidth && y + height <= canvas.clientHeight;
-          setMenu((was) => (!usable ? null : was && was[0] === width && was[1] === height ? was : [width, height]));
-        });
-
         // Layers follow a mouse. Touch is left alone: a finger on the scene is someone scrolling.
         const follow = (event: PointerEvent) => {
           if (event.pointerType !== 'mouse') return;
@@ -138,8 +137,9 @@ export function Hero() {
         window.addEventListener('pointermove', follow, { passive: true });
         cleanups.push(() => window.removeEventListener('pointermove', follow));
       } catch (error) {
-        // No WebGL2, or the atlas did not load: the poster is the scene.
-        if (import.meta.env.DEV) console.warn('garden engine not started:', error);
+        // No WebGL2, or the atlas did not load: the poster is the scene. No engine took the sprites, so let them go.
+        atlas.then((loaded) => loaded.image.close()).catch(() => {});
+        if (import.meta.env.DEV && !gone) console.warn('garden engine not started:', error);
       }
     });
 
@@ -149,7 +149,6 @@ export function Hero() {
       cleanups.forEach((cleanup) => cleanup());
       engineRef.current = null;
       onLive(false);
-      setMenu(null);
     };
   }, []);
 
@@ -179,9 +178,11 @@ export function Hero() {
           ref={posterRef}
           className="garden-poster"
           src={`${import.meta.env.BASE_URL}art/poster-${split}.png`}
-          width={framing.world[0]}
-          height={framing.poster.height}
+          width={POSTER.width}
+          height={POSTER.height}
           alt=""
+          // the first thing a visitor sees: it goes ahead of every other picture on the page
+          fetchPriority="high"
           draggable={false}
         />
         <canvas ref={canvasRef} className="garden-canvas" style={{ visibility: live ? 'visible' : 'hidden' }} />
@@ -190,7 +191,6 @@ export function Hero() {
         <Text as="h1" copy={hero.line} className="lowercase" />
         <Text as="p" copy={hero.sub} />
       </div>
-      {live && menu && <TabletMenu split={split} size={menu} />}
     </section>
   );
 }

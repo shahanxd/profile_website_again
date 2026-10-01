@@ -11,7 +11,7 @@ import { GRID_SURE, detectPeriod, gradientProfiles } from './lib/grid.mjs';
 import { blitSprite, fillRect, loadRaster, newRaster, rasterToSprite, saveRaster } from './lib/image.mjs';
 import { OBJECT_GAP, coloursNearKey, components, describeKey, resolveKey, subjectBox, subjectMask } from './lib/key.mjs';
 import { exportPalette, fit, swatch } from './lib/palette-tools.mjs';
-import { STAGINGS, checkDir, entryFor, parseName, readManifest } from './lib/sprites.mjs';
+import { STAGINGS, checkDir, entryFor, parseName, readManifest, readScenePalettes } from './lib/sprites.mjs';
 
 const USAGE = `Usage, from the repo root:
   node tools/art/pixelize.mjs inspect <raw.png> [--key #rrggbb|alpha|none]
@@ -120,7 +120,7 @@ async function paletteCommand(opts) {
 async function check(opts) {
   const config = await loadConfig(opts.config);
   const dir = opts.dir ?? config.out;
-  const { count, problems } = await checkDir(dir, await loadPalette(config.palette));
+  const { count, problems } = await checkDir(dir, await loadPalette(config.palette), await readScenePalettes(config.scene));
   for (const problem of problems) console.error(`  ${problem}`);
   say(`${dir}: ${count} sprite file(s), ${problems.length} problem(s)`);
   if (problems.length) process.exit(1);

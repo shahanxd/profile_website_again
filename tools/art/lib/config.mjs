@@ -65,7 +65,8 @@ export async function loadConfig(file = 'art/art.config.json') {
     const hint = err.code === 'ENOENT' ? ' (run the tool from the repo root, or pass --config)' : '';
     throw new Error(`${file}: ${err.message}${hint}`);
   }
-  const defaults = { palette: 'art/palette.json', out: 'art/sprites', overrides: 'art/overrides', assets: [], pixelmaps: {} };
+  // "scene" is where the painted scene's layers and their fitted palettes live; `check` reads the palettes.
+  const defaults = { palette: 'art/palette.json', out: 'art/sprites', overrides: 'art/overrides', scene: 'art/scene', assets: [], pixelmaps: {} };
   const unknown = Object.keys(config).find((key) => !(key in defaults));
   if (unknown) throw new Error(`${file}: unknown field "${unknown}" (known: ${Object.keys(defaults).join(', ')})`);
   config = { ...defaults, ...config };

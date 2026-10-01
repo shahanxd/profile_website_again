@@ -3,16 +3,15 @@ import type { SplitId } from '../../split/types';
 import { framing as defaultFraming } from '../scene/framing';
 import { scene as defaultScene } from '../scene/manifest';
 import type { Framing, Scene, Vec2 } from '../scene/types';
-import { loadAtlas } from './atlas';
-import { backdropStrip } from './backdrop';
-import { frameView, watchDeviceSize, type View } from './camera';
+import { loadAtlas, type LoadedAtlas } from './atlas';
+import { frameView, isPortrait, watchDeviceSize, type View } from './camera';
 import { createLoop } from './clock';
 import { createReadout, exposeForDebug, readSwitches } from './debug';
 import { getContext, watchContext } from './gl';
 import { createEmit } from './particles';
 import { createRenderer } from './passes';
 import { pickQuality, TIERS } from './quality';
-import { buildStage, hotspotAt, INSTANCE_SIZE, LIGHT_SIZE, writeInstances, writeLight } from './stage';
+import { buildStage, INSTANCE_SIZE, writeInstances } from './stage';
 
 /**
  * The garden engine: draws the scene described by the manifest into a canvas,
@@ -27,14 +26,8 @@ export interface GardenOptions {
   onLive?: (live: boolean) => void;
   scene?: Scene;
   framing?: Framing;
-  /** Address of the atlas without its extension. */
-  atlas?: string;
-}
-
-/** Where the scene currently sits on the page, for laying DOM over it. */
-export interface Layout {
-  /** Each hotspot in the manifest: x, y, width, height in CSS pixels from the canvas's top-left. */
-  hotspots: Record<string, [number, number, number, number]>;
+  /** The atlas, if the host has already started loading it (see loadAtlas). The engine closes its image when it is destroyed. */
+  atlas?: Promise<LoadedAtlas>;
 }
 
 export interface GardenEngine {
@@ -55,10 +48,6 @@ export interface GardenEngine {
   setMotion(on: boolean): void;
   /** Measure the canvas again. Size changes are noticed without this; it is here for hosts that know better. */
   resize(): void;
-  /** World position to CSS pixels from the canvas's top-left, following parallax for a layer of that depth. */
-  project(worldX: number, worldY: number, depth?: number): Vec2;
-  /** Runs now and whenever the framing, the staging or the whole-pixel parallax changes. Returns a function that stops it. */
-  onLayout(callback: (layout: Layout) => void): () => void;
   /** Stops everything and frees everything on the GPU. The canvas can be given to a new engine afterwards. */
   destroy(): void;
 }
@@ -74,13 +63,9 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
   const frozen = switches.freeze !== undefined;
 
   const gl = getContext(canvas);
-  const atlas = await loadAtlas(options.atlas ?? `${import.meta.env.BASE_URL}art/atlas`);
+  const atlas = await (options.atlas ?? loadAtlas(`${import.meta.env.BASE_URL}art/atlas`));
 
   const stages = { creative: buildStage(scene, 'creative', atlas), tech: buildStage(scene, 'tech', atlas) };
-  const strips = {
-    creative: backdropStrip(scene.backdrop.creative, atlas.colors),
-    tech: backdropStrip(scene.backdrop.tech, atlas.colors),
-  };
   for (const [name, stage] of Object.entries(stages)) {
     if (stage.missing.length) console.warn(`garden: no sprite for ${stage.missing.join(', ')} (${name})`);
   }
@@ -88,13 +73,12 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
   // Two of each: [0] is the staging on show, [1] the one a dissolve is heading for.
   const capacity = Math.max(stages.creative.capacity, stages.tech.capacity) * INSTANCE_SIZE;
   const instances = [new Int16Array(capacity), new Int16Array(capacity)];
-  const lights = [new Int32Array(LIGHT_SIZE), new Int32Array(LIGHT_SIZE)];
   // What the canvas currently shows, to tell whether a frame would look any different.
-  const shown = { instances: new Int16Array(capacity), count: -1, light: new Int32Array(LIGHT_SIZE) };
-  const deepest = Math.max(...scene.layers.map((layer) => layer.depth));
-  const emit = createEmit(tier.particles);
+  const shown = { instances: new Int16Array(capacity), count: -1 };
+  const deepest = Math.max(...scene.layers.map((layer) => layer.depth), ...scene.emitters.map((emitter) => emitter.depth));
+  const emit = switches.air ? createEmit(tier.particles) : undefined;
 
-  let renderer = createRenderer(gl, atlas, strips);
+  let renderer = createRenderer(gl, atlas);
   let split = options.split;
   let dissolve: { to: SplitId; origin: Vec2 | null; start: number; duration: number; hold?: number } | null = null;
   let view: View | null = null;
@@ -114,8 +98,6 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
     pointer.y = pointer.toY;
   }
   const shift: Vec2 = [0, 0];
-  const shiftShown: Vec2 = [0, 0];
-  const layoutListeners = new Set<(layout: Layout) => void>();
 
   const readout = switches.debug ? createReadout(canvas) : null;
   const meter = { ticks: 0, draws: 0, cpu: 0, worst: 0, since: performance.now(), calls: 0, count: 0, rates: '', cost: '' };
@@ -140,29 +122,16 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
       shift[0] = shift[1] = 0;
       return;
     }
-    // Near the painted world's side edges there is less room to slide, so the whole effect is scaled down.
-    const room = Math.min(1, view.slack / (framing.parallax[0] * deepest));
-    shift[0] = -pointer.x * framing.parallax[0] * room;
-    shift[1] = -pointer.y * framing.parallax[1];
+    // Near an edge of the painted world there is less room to slide, so the effect is scaled down that way:
+    // no layer's edge, the plate's least of all, may come into view.
+    for (const axis of [0, 1] as const) {
+      const reach = framing.parallax[axis] * deepest;
+      const room = reach > 0 ? Math.min(1, view.slack[axis] / reach) : 0;
+      shift[axis] = -(axis ? pointer.y : pointer.x) * framing.parallax[axis] * room;
+    }
   }
 
   const sceneTime = () => (still() ? 0 : time);
-
-  function layout(): Layout | null {
-    if (!view) return null;
-    const scale = view.k * cssPerDevice;
-    const hotspots: Layout['hotspots'] = {};
-    for (const id of Object.keys(stages[split].hotspots)) {
-      const [x, y, w, h] = hotspotAt(stages[split], id, sceneTime(), shift)!;
-      hotspots[id] = [(x - view.x) * scale, (y - view.y) * scale, w * scale, h * scale];
-    }
-    return { hotspots };
-  }
-
-  function notifyLayout() {
-    const now = layout();
-    if (now) layoutListeners.forEach((listener) => listener(now));
-  }
 
   /** The dissolve has arrived: its target is now simply the staging on show. */
   function land() {
@@ -170,15 +139,11 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
     split = dissolve.to;
     dissolve = null;
     stale = true;
-    notifyLayout();
   }
 
-  /** Fills instances[slot] and lights[slot] for a staging, and returns the instance count. */
+  /** Fills instances[slot] for a staging, and returns the instance count. */
   function compose(slot: 0 | 1, staging: SplitId): number {
-    const camera: Vec2 = [view!.x, view!.y];
-    const t = sceneTime();
-    writeLight(stages[staging], t, shift, camera, lights[slot]);
-    return writeInstances(stages[staging], t, shift, camera, instances[slot], still() ? undefined : emit);
+    return writeInstances(stages[staging], sceneTime(), shift, [view!.x, view!.y], instances[slot], still() ? undefined : emit);
   }
 
   function render() {
@@ -190,14 +155,13 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
 
     // Most frames of a pixel scene are identical to the last one. When nothing has moved, leave the GPU alone.
     let changed = stale || dissolve !== null || count !== shown.count;
-    for (let i = 0; !changed && i < LIGHT_SIZE; i++) changed = lights[0][i] !== shown.light[i];
     for (let i = 0; !changed && i < count * INSTANCE_SIZE; i++) changed = instances[0][i] !== shown.instances[i];
     if (changed) {
       renderer.calls = 0;
-      renderer.paint(0, split, view, instances[0], count, lights[0]);
+      renderer.paint(0, view, instances[0], count);
       let fade: { progress: number; spread: Spread } | undefined;
       if (dissolve) {
-        renderer.paint(1, dissolve.to, view, instances[1], compose(1, dissolve.to), lights[1]);
+        renderer.paint(1, view, instances[1], compose(1, dissolve.to));
         // Measured every frame: the page may scroll under a dissolve, and its origin is a point in the window.
         const box = canvas.getBoundingClientRect();
         const origin = dissolve.origin ?? [box.left + box.width / 2, box.top + box.height / 2];
@@ -208,7 +172,6 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
       }
       renderer.present(view, fade);
       shown.instances.set(instances[0]);
-      shown.light.set(lights[0]);
       shown.count = count;
       stale = false;
       if (!live) {
@@ -221,11 +184,6 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
       meter.worst = Math.max(meter.worst, took);
       meter.calls = renderer.calls;
       meter.count = count;
-    }
-    if (Math.round(shift[0]) !== shiftShown[0] || Math.round(shift[1]) !== shiftShown[1]) {
-      shiftShown[0] = Math.round(shift[0]);
-      shiftShown[1] = Math.round(shift[1]);
-      notifyLayout();
     }
     if (readout) report();
   }
@@ -269,21 +227,16 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
 
   function onSize(width: number, height: number) {
     if (!width || !height) return;
-    const perDevice = canvas.getBoundingClientRect().width / width;
-    const sameSize = view && width === canvas.width && height === canvas.height;
-    if (sameSize && perDevice === cssPerDevice) return;
-    // Browser zoom changes the CSS pixel and leaves the canvas as it was: only what is laid over it has to move.
-    cssPerDevice = perDevice;
-    if (!sameSize) {
-      canvas.width = width;
-      canvas.height = height;
-      view = frameView(width, height, framing);
-      renderer.resize(view);
-      // Setting the size clears the canvas; draw again before the browser paints.
-      stale = true;
-      render();
-    }
-    notifyLayout();
+    // Browser zoom changes the CSS pixel and leaves the canvas as it was: only the dissolve's grid has to know.
+    cssPerDevice = canvas.getBoundingClientRect().width / width;
+    if (view && width === canvas.width && height === canvas.height) return;
+    canvas.width = width;
+    canvas.height = height;
+    view = frameView(width, height, framing, isPortrait());
+    renderer.resize(view);
+    // Setting the size clears the canvas; draw again before the browser paints.
+    stale = true;
+    render();
   }
 
   let stopWatchingSize = watchDeviceSize(canvas, onSize);
@@ -297,7 +250,7 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
     },
     () => {
       // Everything on the GPU went with the old context; build it again from what we kept.
-      renderer = createRenderer(gl, atlas, strips);
+      renderer = createRenderer(gl, atlas);
       if (view) renderer.resize(view);
       stale = true;
       render();
@@ -321,7 +274,6 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
       split = next;
       stale = true;
       render();
-      notifyLayout();
       sync();
     },
 
@@ -358,29 +310,12 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
       stopWatchingSize = watchDeviceSize(canvas, onSize);
     },
 
-    project(worldX, worldY, depth = 0) {
-      if (!view) return [0, 0];
-      const scale = view.k * cssPerDevice;
-      return [
-        (worldX - view.x + Math.round(shift[0] * depth)) * scale,
-        (worldY - view.y + Math.round(shift[1] * depth)) * scale,
-      ];
-    },
-
-    onLayout(callback) {
-      layoutListeners.add(callback);
-      const now = layout();
-      if (now) callback(now);
-      return () => layoutListeners.delete(callback);
-    },
-
     destroy() {
       loop.stop();
       watcher.disconnect();
       document.removeEventListener('visibilitychange', sync);
       stopWatchingSize();
       stopWatchingContext();
-      layoutListeners.clear();
       renderer.dispose();
       atlas.image.close();
       readout?.destroy();

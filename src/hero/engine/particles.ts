@@ -4,10 +4,13 @@ import { frameAt, hash, INSTANCE_SIZE, type Emit } from './stage';
 /**
  * Petals, steam, fireflies, moths, glints. Nothing is simulated and nothing
  * is remembered: where a particle is depends only on the clock, like every
- * sprite in the stage, so a frozen frame is repeatable and the air is already
- * full on the first frame. Each particle is a slot with its own stream of
- * random numbers; a drifting slot is used again and again, starting somewhere
- * new each time round.
+ * sprite in the stage, so a frozen frame is repeatable. Each particle is a
+ * slot with its own stream of random numbers; a drifting slot is used again
+ * and again, starting somewhere new each time round.
+ *
+ * The air is empty when the scene begins and fills over its first seconds:
+ * nothing is shown that would have set off before time 0. The first frame is
+ * therefore the poster exactly, and the canvas takes over from it unseen.
  */
 
 const TURN = Math.PI * 2;
@@ -36,10 +39,13 @@ export function createEmit(share: number): Emit {
         const round = Math.floor(clock / cycle);
         age = clock - round * cycle;
         if (age >= life) continue; // waiting its turn
+        if (age > t) continue; // set off before the scene began
         const [jitterX, jitterY] = move.jitter ?? [0, 0];
         x += hash(seed, round * 4 + 8) * areaW + (move.velocity[0] + (hash(seed, 4) * 2 - 1) * jitterX) * age;
         y += hash(seed, round * 4 + 9) * areaH + (move.velocity[1] + (hash(seed, 5) * 2 - 1) * jitterY) * age;
         if (move.wobble) x += move.wobble.by * Math.sin((age / move.wobble.period + hash(seed, round * 4 + 10)) * TURN);
+      } else if (t < 1 + hash(seed, 9) * 5) {
+        continue; // has not arrived yet: these come one by one in the first seconds
       } else if (move.kind === 'wander') {
         // two slow swings of different lengths, so the path never quite repeats
         x += hash(seed, 1) * areaW + move.reach[0] * Math.sin((t / between(move.period, hash(seed, 2)) + hash(seed, 3)) * TURN);
@@ -61,9 +67,8 @@ export function createEmit(share: number): Emit {
       out[at + 1] = originY + Math.round(y) - sprite.anchor[1];
       out[at + 2] = sprite.w;
       out[at + 3] = sprite.h;
-      // the frame, twice: particles have no daylight form, so lamplight leaves them as they are
-      out[at + 4] = out[at + 6] = sprite.x + frame * sprite.w;
-      out[at + 5] = out[at + 7] = sprite.y;
+      out[at + 4] = sprite.x + frame * sprite.w;
+      out[at + 5] = sprite.y;
       at += INSTANCE_SIZE;
     }
     return at;

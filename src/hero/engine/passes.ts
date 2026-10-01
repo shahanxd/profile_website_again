@@ -1,10 +1,9 @@
 import type { Spread } from '../../split/dissolve';
-import type { SplitId } from '../../split/types';
 import type { LoadedAtlas } from './atlas';
-import { BAYER8, STRIP_WIDTH, type Strip } from './backdrop';
 import type { View } from './camera';
+import { BAYER8 } from './dither';
 import { createProgram, createTarget, createTexture, deleteTarget, type GL, type Target } from './gl';
-import { BACKDROP_FS, FULLSCREEN_VS, PRESENT_FS, SPRITE_FS, SPRITE_VS } from './shaders';
+import { FULLSCREEN_VS, PRESENT_FS, SPRITE_FS, SPRITE_VS } from './shaders';
 import { INSTANCE_SIZE } from './stage';
 
 /**
@@ -16,8 +15,8 @@ import { INSTANCE_SIZE } from './stage';
  */
 export interface Renderer {
   resize(view: View): void;
-  /** `slot` 0 is the staging on show; slot 1 is the one a dissolve is heading for. `light` is LIGHT_SIZE numbers. */
-  paint(slot: 0 | 1, split: SplitId, view: View, instances: Int16Array, count: number, light: Int32Array): void;
+  /** `slot` 0 is the staging on show; slot 1 is the one a dissolve is heading for. */
+  paint(slot: 0 | 1, view: View, instances: Int16Array, count: number): void;
   /** With `dissolve`, blocks past their threshold show slot 1. */
   present(view: View, dissolve?: { progress: number; spread: Spread }): void;
   /** GPU draw calls made since this was last set to 0. */
@@ -26,26 +25,20 @@ export interface Renderer {
 }
 
 // Texture units, fixed for the life of the renderer.
-const MAIN = 0; // strip, atlas, or the scene on show
+const MAIN = 0; // the atlas, or the scene on show
 const NEXT = 1; // the scene being dissolved to
 const BAYER = 2; // the ordered-dither table
 
-export function createRenderer(gl: GL, atlas: LoadedAtlas, strips: Record<SplitId, Strip>): Renderer {
-  const backdrop = createProgram(gl, FULLSCREEN_VS, BACKDROP_FS, ['u_strip', 'u_camera', 'u_top']);
-  const sprites = createProgram(gl, SPRITE_VS, SPRITE_FS, ['u_atlas', 'u_bayer', 'u_view', 'u_light', 'u_strength']);
+export function createRenderer(gl: GL, atlas: LoadedAtlas): Renderer {
+  const sprites = createProgram(gl, SPRITE_VS, SPRITE_FS, ['u_atlas', 'u_view']);
   const present = createProgram(gl, FULLSCREEN_VS, PRESENT_FS, ['u_scene', 'u_next', 'u_bayer', 'u_k', 'u_height', 'u_progress', 'u_spread']);
 
   const atlasTexture = createTexture(gl, atlas.image);
-  const strip = (s: Strip) => createTexture(gl, { width: STRIP_WIDTH, height: s.height, data: s.pixels }, true);
-  const stripTextures: Record<SplitId, WebGLTexture> = { creative: strip(strips.creative), tech: strip(strips.tech) };
   const bayer = createTexture(gl, { width: 8, height: 8, data: new Uint8Array(BAYER8.flatMap((value) => [value, 0, 0, 255])) });
 
   // Each sampler keeps to its unit; the dither table stays bound to its own for good.
-  gl.useProgram(backdrop.program);
-  gl.uniform1i(backdrop.at.u_strip, MAIN);
   gl.useProgram(sprites.program);
   gl.uniform1i(sprites.at.u_atlas, MAIN);
-  gl.uniform1i(sprites.at.u_bayer, BAYER);
   gl.useProgram(present.program);
   gl.uniform1i(present.at.u_scene, MAIN);
   gl.uniform1i(present.at.u_next, NEXT);
@@ -68,9 +61,9 @@ export function createRenderer(gl: GL, atlas: LoadedAtlas, strips: Record<SplitI
   const instanceBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
   const stride = INSTANCE_SIZE * 2; // bytes: each number is a 16-bit integer
-  for (const [location, offset] of [[1, 0], [2, 8]]) {
+  for (const [location, size, offset] of [[1, 4, 0], [2, 2, 8]]) {
     gl.enableVertexAttribArray(location);
-    gl.vertexAttribPointer(location, 4, gl.SHORT, false, stride, offset);
+    gl.vertexAttribPointer(location, size, gl.SHORT, false, stride, offset);
     gl.vertexAttribDivisor(location, 1);
   }
   gl.bindVertexArray(null);
@@ -79,6 +72,8 @@ export function createRenderer(gl: GL, atlas: LoadedAtlas, strips: Record<SplitI
   gl.disable(gl.DITHER);
   gl.disable(gl.BLEND);
   gl.disable(gl.DEPTH_TEST);
+  // The plate and the lawn cover every view. Should anything ever be left bare, it is the dark of the lawn at night, not white.
+  gl.clearColor(0.03, 0.05, 0.04, 1);
 
   const targets: (Target | null)[] = [null, null];
 
@@ -93,25 +88,17 @@ export function createRenderer(gl: GL, atlas: LoadedAtlas, strips: Record<SplitI
       });
     },
 
-    paint(slot, split, view, instances, count, light) {
+    paint(slot, view, instances, count) {
       const target = targets[slot];
       if (!target) return;
       gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
       gl.viewport(0, 0, target.width, target.height);
-      gl.activeTexture(gl.TEXTURE0 + MAIN);
-
-      gl.useProgram(backdrop.program);
-      gl.bindTexture(gl.TEXTURE_2D, stripTextures[split]);
-      gl.uniform2i(backdrop.at.u_camera, view.x, view.y);
-      gl.uniform1i(backdrop.at.u_top, strips[split].top);
-      gl.bindVertexArray(noAttributes);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      gl.clear(gl.COLOR_BUFFER_BIT);
 
       gl.useProgram(sprites.program);
+      gl.activeTexture(gl.TEXTURE0 + MAIN);
       gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
       gl.uniform2f(sprites.at.u_view, view.w, view.h);
-      gl.uniform4i(sprites.at.u_light, light[0], light[1], light[2], light[3]);
-      gl.uniform1i(sprites.at.u_strength, light[4]);
       gl.bindVertexArray(quad);
       gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
       if (instances.length > capacity) {
@@ -121,7 +108,7 @@ export function createRenderer(gl: GL, atlas: LoadedAtlas, strips: Record<SplitI
         gl.bufferSubData(gl.ARRAY_BUFFER, 0, instances.subarray(0, count * INSTANCE_SIZE));
       }
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count);
-      renderer.calls += 2;
+      renderer.calls += 1;
     },
 
     present(view, dissolve) {
@@ -146,12 +133,12 @@ export function createRenderer(gl: GL, atlas: LoadedAtlas, strips: Record<SplitI
     dispose() {
       targets.forEach((target) => deleteTarget(gl, target));
       targets.fill(null);
-      for (const texture of [atlasTexture, stripTextures.creative, stripTextures.tech, bayer]) gl.deleteTexture(texture);
+      for (const texture of [atlasTexture, bayer]) gl.deleteTexture(texture);
       gl.deleteBuffer(corners);
       gl.deleteBuffer(instanceBuffer);
       gl.deleteVertexArray(quad);
       gl.deleteVertexArray(noAttributes);
-      for (const { program } of [backdrop, sprites, present]) gl.deleteProgram(program);
+      for (const { program } of [sprites, present]) gl.deleteProgram(program);
     },
   };
   return renderer;

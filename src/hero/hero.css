@@ -2,32 +2,26 @@
  * The hero: the garden, with the copy laid over it.
  *
  * Everything here is measured in art pixels. --k is the size of one art pixel
- * in CSS pixels. The script sets it exactly (see placeScene in Hero.tsx);
- * until then CSS does the same sum as engine/camera.ts with what it can know,
- * so the first paint is already in place and the script has nothing to move.
- * The other numbers come from framing.ts as custom properties.
+ * in CSS pixels; --poster-left and --poster-top are where the painted world's
+ * top-left corner sits in the hero. The script sets all three exactly (see
+ * placeScene in Hero.tsx); until then CSS does the same sum as
+ * engine/camera.ts with what it can know, so the first paint is already in
+ * place and the script has nothing to move. The other numbers come from
+ * framing.ts as custom properties.
  */
 .hero {
-  --k: max(100vw / var(--world-w), 100svh / var(--land-h));
-  --target-x: var(--land-x);
-  --target-y: var(--land-y);
-  --span-from: 0;
-  --span-to: var(--world-w);
-  --poster-left: clamp(
-    100% - var(--span-to) * var(--k),
-    var(--target-x) - var(--focus-x) * var(--k),
-    0px - var(--span-from) * var(--k)
-  );
-  --poster-top: min(var(--target-y) - var(--focus-y) * var(--k), 100% - var(--floor) * var(--k));
+  --k: max(100vw / var(--world-w), 100svh / var(--rows), min(100svh / var(--land-h), 100vw / var(--land-w)));
+  --ideal-left: max(0px - var(--land-left) * var(--k), (100% - var(--world-w) * var(--k)) / 2);
+  --ideal-top: calc(var(--land-y) - var(--focus-y) * var(--k));
+  --poster-left: clamp(100% - var(--world-w) * var(--k), var(--ideal-left), 0px);
+  --poster-top: min(0px, var(--ideal-top), 100% - var(--floor) * var(--k));
 }
 
 @media (orientation: portrait) {
   .hero {
-    --k: max(100vw / var(--world-w), 100vw / var(--port-w));
-    --target-x: var(--port-x);
-    --target-y: var(--port-y);
-    --span-from: var(--port-from);
-    --span-to: var(--port-to);
+    --k: max(100vw / var(--world-w), 100svh / var(--rows), min(100vw / var(--port-w), 100svh / var(--port-h)));
+    --ideal-left: calc(50% - var(--focus-x) * var(--k));
+    --ideal-top: 0px;
   }
 }
 
@@ -48,26 +42,37 @@
   .hero {
     --dpx: 1px;
     --tiny: calc(var(--dpx) * 0.001);
-    --k: max(
+    /* never more on screen than is painted, across or down */
+    --k-fit: max(
       round(up, 100vw / var(--world-w) - var(--tiny), var(--dpx)),
-      round(100svh / var(--land-h) + var(--tiny), var(--dpx))
+      round(up, 100svh / var(--rows) - var(--tiny), var(--dpx))
+    );
+    --k: max(
+      var(--k-fit),
+      min(
+        round(100svh / var(--land-h) + var(--tiny), var(--dpx)),
+        round(100vw / var(--land-w) + var(--tiny), var(--dpx))
+      )
     );
     /* the camera sits on whole art pixels */
     --nudge: calc(var(--k) * 0.03);
-    --poster-left: clamp(
-      round(up, 100% - var(--span-to) * var(--k) - var(--nudge), var(--k)),
-      round(var(--target-x) - var(--focus-x) * var(--k) + var(--nudge), var(--k)),
-      0px - var(--span-from) * var(--k)
-    );
-    --poster-top: min(
-      round(var(--target-y) - var(--focus-y) * var(--k) + var(--nudge), var(--k)),
-      round(up, 100% - var(--floor) * var(--k) - var(--nudge), var(--k))
-    );
+    --ideal-left: max(0px - var(--land-left) * var(--k), round(up, (100% - var(--world-w) * var(--k)) / 2 - var(--nudge), var(--k)));
+    --ideal-top: round(var(--land-y) - var(--focus-y) * var(--k) + var(--nudge), var(--k));
+    --poster-left: clamp(round(up, 100% - var(--world-w) * var(--k) - var(--nudge), var(--k)), var(--ideal-left), 0px);
+    --poster-top: min(0px, var(--ideal-top), round(up, 100% - var(--floor) * var(--k) - var(--nudge), var(--k)));
   }
 
   @media (orientation: portrait) {
     .hero {
-      --k: round(up, 100vw / var(--port-w) - var(--tiny), var(--dpx));
+      --k: max(
+        var(--k-fit),
+        min(
+          round(down, 100vw / var(--port-w) + var(--tiny), var(--dpx)),
+          round(down, 100svh / var(--port-h) + var(--tiny), var(--dpx))
+        )
+      );
+      --ideal-left: round(50% - var(--focus-x) * var(--k) + var(--nudge), var(--k));
+      --ideal-top: 0px;
     }
   }
 
@@ -133,71 +138,82 @@
   left: var(--poster-left);
   top: var(--poster-top);
   width: calc(var(--world-w) * var(--k));
-  height: calc(var(--poster-h) * var(--k));
+  height: calc(var(--rows) * var(--k));
   max-width: none;
   image-rendering: pixelated;
 }
 
 /*
- * The copy is sized and placed in art pixels too, so it keeps its place
- * against the scene on every screen: over the tree's canopy on wide screens,
- * in the open sky above the tree on tall ones.
+ * The copy is sized and placed in art pixels against the painted world, so
+ * it keeps its place in the scene on every screen.
+ *
+ * Wide screens: in the open sky, right of the tree's canopy (which ends at
+ * world x 189) and above the pavilion, short of the moon (world x 312). The
+ * sky is the ground the type stands on: dark umber on the gold of creative,
+ * cream on the indigo of tech, which is what the page's ink already is in
+ * each. On a squat screen the sky is a narrow band, so the type follows the
+ * screen's height down.
  */
 .hero-copy {
-  position: relative;
+  --copy-x: calc(var(--poster-left) + var(--k) * 196);
+  position: absolute;
   z-index: 10;
-  box-sizing: content-box;
-  max-width: calc(var(--k) * 132);
-  /* 4rem is the height of the fixed navigation */
-  padding: calc(4rem + var(--k) * 5) var(--gutter) calc(var(--k) * 8) max(var(--gutter), var(--k) * 9);
+  left: var(--copy-x);
+  top: max(var(--poster-top) + var(--k) * 26, var(--k) * 4);
+  width: min(var(--k) * 110, 100% - var(--copy-x) - var(--gutter));
+  color: var(--ink);
 }
 
 .hero-copy h1 {
-  font-size: calc(var(--k) * 11.5);
-  line-height: 1.06;
+  font-size: min(var(--k) * 10.5, 5.8svh);
+  line-height: 1.08;
+}
+
+.hero-copy p {
+  margin-top: calc(var(--k) * 3.5);
+  font-size: clamp(15px, min(var(--k) * 3.8, 2.1svh), 2rem);
+  line-height: 1.35;
 }
 
 /*
- * The second line sits on a small plate in the page colour. The scene behind
- * it changes from blossom to sky to skyline as screens change shape, and text
- * this size needs a ground it can rely on. Corners step in by one art pixel.
+ * Tall screens: the view starts at the top of the world, under the tree, and
+ * the lawn carries on below the carpet (world row 198 and down). The copy
+ * stands on that lawn, midway between the carpet and the foot of the hero, in
+ * cream in both stagings: the grass is dark by day too. It stays in the flow,
+ * so a screen too short for it grows the hero (and with it the lawn) instead
+ * of cutting the copy off. The space kept clear at the foot is where the page
+ * breaks in over the hero's edge.
  */
-.hero-copy p {
-  --step: var(--k);
-  display: inline-block;
-  margin-top: calc(var(--k) * 4);
-  padding: calc(var(--k) * 1.5) calc(var(--k) * 2.5);
-  background: var(--bg);
-  color: var(--ink);
-  font-size: clamp(15px, var(--k) * 3.6, 2rem);
-  line-height: 1.35;
-  clip-path: polygon(
-    var(--step) 0,
-    calc(100% - var(--step)) 0,
-    calc(100% - var(--step)) var(--step),
-    100% var(--step),
-    100% calc(100% - var(--step)),
-    calc(100% - var(--step)) calc(100% - var(--step)),
-    calc(100% - var(--step)) 100%,
-    var(--step) 100%,
-    var(--step) calc(100% - var(--step)),
-    0 calc(100% - var(--step)),
-    0 var(--step),
-    var(--step) var(--step)
-  );
-}
-
 @media (orientation: portrait) {
-  .hero-copy {
-    max-width: none;
-    padding-inline: var(--gutter);
+  .hero {
+    display: flex;
+    flex-direction: column;
   }
-}
 
-/* A tall window that is not very tall (a tablet held upright) has less sky above the bough: smaller type keeps the copy clear of the lantern. */
-@media (orientation: portrait) and (min-aspect-ratio: 2/3) {
+  .hero-copy {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: auto;
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-top: calc(var(--k) * 203);
+    padding: 0 var(--gutter) calc(var(--px) * 30);
+    color: #faeddb;
+  }
+
+  :root[data-split='tech'] .hero-copy {
+    color: var(--ink);
+  }
+
   .hero-copy h1 {
-    font-size: calc(var(--k) * 9);
+    font-size: max(var(--k) * 9.5, 22px);
+  }
+
+  .hero-copy p {
+    font-size: clamp(15px, var(--k) * 4.4, 2rem);
   }
 }
 
@@ -215,50 +231,4 @@
   opacity: 0;
   /* a little quicker than the cover, to be gone for certain when the words change */
   transition: opacity calc(var(--cover-ms) * 0.8) ease-in;
-}
-
-/*
- * The site menu on the tablet prop's screen. The engine reports where the
- * screen is (it moves with the pointer, a whole art pixel at a time). This
- * plate covers it exactly, in the screen's own colour, and every measure
- * inside is a whole number of art pixels: one pixel of margin above, then
- * rows five pixels tall. The colours are the palette's cream, ink and gold,
- * to match the tablet sprite; the page tokens would change with the split.
- */
-.garden-menu {
-  --screen: #ffeaa8;
-  --screen-ink: #14122b;
-  --screen-pick: #f9cf7a;
-  position: absolute;
-  left: var(--menu-x);
-  top: var(--menu-y);
-  z-index: 10;
-  overflow: hidden;
-  padding-top: var(--k);
-  background: var(--screen);
-  color: var(--screen-ink);
-  /* TabletMenu.tsx makes this smaller when the longest label needs it */
-  font-size: calc(var(--k) * 3.4);
-  line-height: calc(var(--k) * 5);
-  text-transform: lowercase;
-}
-
-.garden-menu a {
-  display: block;
-  height: calc(var(--k) * 5);
-  padding-inline: var(--k);
-  color: inherit;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.garden-menu a:hover,
-.garden-menu a:focus-visible {
-  background: var(--screen-pick);
-}
-
-/* Keyboard focus adds a bar one art pixel thick down the row's left edge: ink on cream, plain to see. */
-.garden-menu a:focus-visible {
-  outline: none;
-  box-shadow: inset var(--k) 0 0 var(--screen-ink);
 }

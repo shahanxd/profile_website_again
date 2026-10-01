@@ -8,6 +8,7 @@ import type { Quality } from './quality';
  *   ?freeze=2         draw the frame for scene time 2 s, then stop
  *   ?pointer=0.5,-1   hold the pointer there (-1..1 each way), to see parallax in a frozen frame
  *   ?q=low|mid|high   force a quality tier
+ *   ?air=0            leave the particles out, to look at one sprite's own movement
  *   ?debug=1          show the readout, and put snapshot tools on window.__garden
  *
  * ?dissolve=0.5 (hold a split switch half way) belongs to the whole page, not
@@ -17,6 +18,7 @@ export interface Switches {
   freeze?: number;
   pointer?: Vec2;
   quality?: Quality;
+  air: boolean;
   debug: boolean;
 }
 
@@ -29,6 +31,7 @@ export function readSwitches(search: string): Switches {
     freeze: Number.isFinite(freeze) ? Math.max(0, freeze) : undefined,
     pointer: pointer.length === 2 && pointer.every(Number.isFinite) ? [pointer[0], pointer[1]] : undefined,
     quality: q === 'low' || q === 'mid' || q === 'high' ? q : undefined,
+    air: params.get('air') !== '0',
     debug: params.get('debug') === '1',
   };
 }

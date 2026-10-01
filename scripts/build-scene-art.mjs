@@ -2,7 +2,7 @@
 // real layers at art resolution: one background plate, the tree, and one
 // sprite per foreground thing, all snapped to one palette fitted to the scene.
 //
-//   node scripts/build-scene-art.mjs [--staging creative|tech] [--scale 3]
+//   node scripts/build-scene-art.mjs [--staging creative|tech] [--scale 4]
 //
 // Output: art/scene/<staging>/<id>.png, art/scene/<staging>/layout.json and
 // art/scene/preview-<staging>.png (the layers composed, enlarged, for review).
@@ -46,6 +46,14 @@ const STAGINGS = {
         { id: 'kite-b', foot: [1046, 304], height: 26, z: 5, peel: false },
       ],
     },
+    touchUps: {
+      // a pink speck on the chain and one on the coffee pot's lid: magenta the peel did not reach
+      lantern: { size: [12, 47], paint: [[6, 9, 6, 11], [5, 8, 5, 9], [6, 10, 6, 12]] },
+      tray: { size: [35, 24], paint: [[17, 7, 18, 7]] },
+      figure: { size: [57, 61], paint: [[54, 40, 53, 40]] },
+      // and four along the tablet's slanted edge
+      table: { size: [28, 41], paint: [[11, 3, 12, 3], [10, 6, 11, 6], [9, 10, 10, 10], [8, 13, 9, 13]] },
+    },
   },
   tech: {
     plate: 'layers/tech-plate.png',
@@ -61,6 +69,14 @@ const STAGINGS = {
         { id: 'lantern', top: [236, 92], height: 150, z: 30 },
         { id: 'rover', foot: [500, 542], height: 58, z: 62 },
       ],
+    },
+    touchUps: {
+      // the laptop lid carried a maker's mark, one pixel at this size: painted out in the lid's own colour
+      figure: { size: [72, 53], paint: [[46, 32, 45, 32]] },
+      // magenta left on the rims
+      lantern: { size: [13, 49], paint: [[2, 23], [0, 33], [12, 33, 11, 33], [1, 33, 2, 33], [1, 34, 2, 34], [1, 35, 2, 35], [1, 36, 2, 36]] },
+      table: { size: [30, 41], paint: [[28, 29, 27, 29]] },
+      tray: { size: [35, 18], paint: [[33, 7], [31, 6, 30, 6]] },
     },
   },
 };
@@ -207,6 +223,24 @@ function shade(sprite, origin, { tint, light, radius }) {
       const lit = Math.max(0, 1 - Math.hypot(x + origin[0] - lx, y + origin[1] - ly) / reach) ** 2;
       for (let c = 0; c < 3; c++) sprite.data[o + c] = Math.round(sprite.data[o + c] * (tint[c] + (1 - tint[c]) * lit));
     }
+  }
+}
+
+/**
+ * Small repairs by hand, made after the palette snap so they cannot move the palette. Each entry of
+ * `paint` is [x, y, fromX, fromY] (the pixel takes the colour of another pixel of the same sprite) or
+ * [x, y] (the pixel is cleared). Coordinates are sprite pixels, so the repairs only apply while the
+ * sprite still has the size they were made for.
+ */
+function touchUp(layer, { size, paint }) {
+  if (layer.w !== size[0] || layer.h !== size[1]) {
+    console.warn(`  ${layer.id}: is ${layer.w}x${layer.h}, its touch-ups were made for ${size.join('x')} and were skipped`);
+    return;
+  }
+  for (const [x, y, fromX, fromY] of paint) {
+    const to = (y * layer.w + x) * 4;
+    if (fromX === undefined) layer.data.fill(0, to, to + 4);
+    else layer.data.copy(layer.data, to, (fromY * layer.w + fromX) * 4, (fromY * layer.w + fromX) * 4 + 4);
   }
 }
 
@@ -425,6 +459,7 @@ async function buildStaging(name, enlarge) {
   const labs = palette.map(([r, g, b]) => oklab(r, g, b));
   const cache = new Map();
   for (const layer of layers) snap(layer, palette, labs, cache);
+  for (const layer of layers) if (config.touchUps?.[layer.id]) touchUp(layer, config.touchUps[layer.id]);
 
   const out = path.join(root, 'art/scene', name);
   await mkdir(out, { recursive: true });
@@ -462,7 +497,7 @@ async function buildStaging(name, enlarge) {
   for (const layer of layers) console.log(`  ${layer.id.padEnd(8)} ${layer.w}x${layer.h} at ${layer.x},${layer.y}`);
 }
 
-const { values } = parseArgs({ options: { staging: { type: 'string' }, scale: { type: 'string', default: '3' } } });
+const { values } = parseArgs({ options: { staging: { type: 'string' }, scale: { type: 'string', default: '4' } } });
 for (const name of values.staging ? [values.staging] : Object.keys(STAGINGS)) {
   if (!STAGINGS[name]) throw new Error(`unknown staging "${name}"`);
   await buildStaging(name, Number(values.scale));

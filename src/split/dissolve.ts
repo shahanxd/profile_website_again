@@ -1,4 +1,4 @@
-import { bayer8 } from '../hero/engine/backdrop';
+import { bayer8 } from '../hero/engine/dither';
 import { otherSplit, SPLITS } from './splits';
 import type { SplitId } from './types';
 

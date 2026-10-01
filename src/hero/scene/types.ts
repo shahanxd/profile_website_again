@@ -4,7 +4,7 @@ import type { SplitId } from '../../split/types';
  * The garden is described as data (see manifest.ts and framing.ts). The engine
  * only reads these types, so replacing or adding art never means touching
  * engine code. All positions are whole art pixels in world space: the painted
- * world is 400 x 200 with its origin at the top-left.
+ * world is the plate, 352 x 198, with its origin at the top-left.
  */
 
 export type Vec2 = [number, number];
@@ -21,18 +21,15 @@ export interface Sway {
   period: number;
 }
 
-/** Steady travel to the right, one pixel at a time, wrapping inside `span` (world x). */
-export interface Drift {
-  secondsPerPixel: number;
-  span: Vec2;
-}
-
 /** The parts of a layer that may differ between stagings. */
 export interface LayerPose {
   /** Sprite id in art/sprites. The file named <id>.<staging>.png is used when there is one. */
   sprite: string;
-  /** Where the sprite's anchor goes. For an attached layer this is an offset from the parent's point. */
-  at: Vec2;
+  /**
+   * Where the sprite's anchor goes. Leave it out for the painted scene's sprites: each carries the place the
+   * art gives it. For an attached layer this is an offset from the parent's point.
+   */
+  at?: Vec2;
   anim?: Anim;
   sway?: Sway;
 }
@@ -45,7 +42,6 @@ export interface Layer extends LayerPose {
   depth: number;
   /** Stagings this layer appears in. Leave out for both. */
   in?: SplitId[];
-  drift?: Drift;
   /** Pin this layer to a named point of another layer's sprite, so it follows that sprite when the art changes. */
   attachTo?: { layer: string; point: string };
   /** Per-staging changes to pose. */
@@ -91,67 +87,33 @@ export interface Emitter {
   anim?: Anim | 'life';
 }
 
-/**
- * Lamplight on the ground at dusk. Inside the pool, sprites that were darkened
- * for dusk show their daylight colours again, thinned out by ordered dither
- * towards the rim. Only shared sprites with a baked dusk form are affected;
- * art made for one staging carries its own lighting. One light per staging.
- */
-export interface Light {
-  in?: SplitId[];
-  /** Centre of the pool, in world pixels, and its radii. */
-  at: Vec2;
-  radius: Vec2;
-  /** Parallax depth of the ground it falls on. */
-  depth: number;
-  /** The layer whose flame throws it. The pool dims with that sprite's frames: one strength, 0..1, per frame. */
-  flame?: { layer: string; strength: number[] };
-}
-
-/**
- * A rectangle in the scene that real page elements are laid over. The page
- * covers it with its own plate, so the sprite underneath may show anything.
- */
-export interface Hotspot {
-  id: string;
-  /** The layer it belongs to, and the named point on that layer's sprite that is its top-left corner. */
-  layer: string;
-  point: string;
-  size: Vec2;
-}
-
-/** One colour change in a vertical dithered gradient: from this world y downwards, blend towards the next stop. */
-export type Stop = [y: number, color: string];
-
-/** What is drawn behind every sprite, and beyond the painted world above and below. */
-export interface Backdrop {
-  sky: Stop[];
-  /** Takes over from the sky at its first stop. Its last colour continues below the painted world. */
-  ground: Stop[];
-}
-
 export interface Scene {
   layers: Layer[];
   emitters: Emitter[];
-  lights: Light[];
-  hotspots: Hotspot[];
-  backdrop: Record<SplitId, Backdrop>;
 }
 
 /** How the world is fitted to a screen. */
 export interface Framing {
-  /** Size of the painted world. */
+  /** Size of the painted world: the plate. */
   world: Vec2;
-  /** The point the camera keeps in place: the middle of the carpet group. */
+  /** Rows of lawn painted on below the world, for screens taller than it. The view never goes past them, or above the world. */
+  lawn: number;
+  /** The middle of the carpet group: what a tall screen is centred on, and what a wide one keeps at one height. */
   focus: Vec2;
-  /** The view always reaches down to at least this world row, so there is lawn under the carpet on squat screens. */
+  /** The view always reaches down to at least this world row, so the things on the carpet stay in view on squat screens. */
   floor: number;
-  /** Wide screens show about this many art pixels of height. `target` is where the focus sits, as a fraction of the screen. */
-  landscape: { height: number; target: Vec2 };
-  /** Tall screens show at most this many art pixels of width, and never look outside `span` (world x, from and to). */
-  portrait: { width: number; target: Vec2; span: Vec2 };
+  /**
+   * Wide screens show about `height` rows, unless that would leave fewer than about `width` columns: the copy
+   * needs the sky beside the tree. The view starts `left` columns into the world (or in the middle of it, when
+   * there are fewer than twice that to spare), and the focus sits `target` of the way down the screen.
+   */
+  landscape: { height: number; width: number; left: number; target: number };
+  /**
+   * Tall screens start at the top of the world and are centred on the focus. They show at least `width` art
+   * pixels across (the carpet group, from the cat to the side table) and at least `height` rows (the copy
+   * needs the lawn under the carpet), and as little more as a whole k allows.
+   */
+  portrait: { width: number; height: number };
   /** Furthest a depth-1 layer moves with the pointer, in art pixels. */
   parallax: Vec2;
-  /** World rows the poster image covers: first row and row count. Its width is the world's. */
-  poster: { top: number; height: number };
 }
