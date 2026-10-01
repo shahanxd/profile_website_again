@@ -22,7 +22,7 @@ Prompts and settings are in `art/requests/02-key-art-refined-and-dusk.md` (GPT I
 | Step | Output | Verdict |
 |---|---|---|
 | A, refined creative | `art/raw/keyart/creative-v2.png` (1088x608) | **Approved as the creative hero still.** Open sky top right, pavilion lower, kites low, tablet upright facing the viewer. |
-| B, dusk | `art/raw/keyart/tech-v1.png` | requested |
+| B, dusk | not run | Superseded: dusk is made as layers (request 04). |
 
 ## Reduction test on creative-v2 (352x198, nearest)
 
@@ -31,6 +31,16 @@ Prompts and settings are in `art/requests/02-key-art-refined-and-dusk.md` (GPT I
 
 ## Creative layers
 
-Prompts and settings are in `art/requests/03-creative-layers.md` (plate, tree, foreground sheet; GPT Image 2.5 editing from creative-v2). Status: requested.
+Prompts and settings are in `art/requests/03-creative-layers.md` (GPT Image 2.5 editing from creative-v2).
+
+| Run | Output | Verdict |
+|---|---|---|
+| 1, plate | `art/raw/layers/creative-plate.png` | **Good.** Tree and foreground removed, garden filled in, carpet and bolster kept. It is a re-render, not pixel-identical to creative-v2 (mean RGB difference about 11 in the sky, 31 on the lawn), so cut-outs cannot be made by differencing; they must be generated separately. |
+| 2, tree | `art/raw/layers/creative-tree.png` | **Good, with two fixes.** The file is opaque with a checkerboard painted in; it keys out cleanly (neutral and light pixels to transparent). The tree is drawn about 1.4x larger than in creative-v2, so it is scaled to about 0.72 from the top-left when composed. |
+| 3, sheet | not received (the reference file was exported instead) | Re-requested in request 04 with a magenta background. |
+
+## Foreground sheets and dusk layers
+
+Prompts and settings are in `art/requests/04-sheets-and-dusk-layers.md`. Status: requested.
 
 Note: the owner's likeness came out right from the text description alone, so the photo has not been uploaded anywhere.

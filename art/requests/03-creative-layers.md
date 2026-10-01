@@ -1,5 +1,7 @@
 # Request 03: creative layers (cut the approved still into pieces)
 
+> **Status:** runs 1 and 2 are done (`creative-plate.png`, `creative-tree.png`). **Run 3 is superseded** by run 1 of `04-sheets-and-dusk-layers.md`, which asks for a magenta background instead of transparency.
+
 The approved creative still is `art/raw/keyart/creative-v2.png`. To animate it and to swap things between the two sides, the site needs it as separate layers: a background with the tree and the foreground things removed, the tree on its own, and the foreground things on their own.
 
 Three runs on **GPT Image 2.5**, about 24 credits. For **every** run attach `creative-v2.png` as the reference image. Aspect ratio landscape 16:9, quality high, format PNG. Download the original PNG.

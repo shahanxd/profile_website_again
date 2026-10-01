@@ -71,7 +71,9 @@ Node 22.12 or newer is required (this machine has 24.19).
 - **Palette decision:** the hand-written 48-colour palette in `art/palette.json` makes the still muddy. Plates and sprites cut from the stills are quantised to a palette **fitted to the approved still** (about 96 colours, no dither). The dusk side comes from a generated dusk still, not from the `duskSwap` table. `art/palette.json` remains for code-authored pixel maps and the grey boxes only.
 - **Layer plan:** one background plate per split (tree and foreground things removed), the tree as its own layer, and foreground sprites (figure, parrot, cat, tray, table with tablet, lantern, kites). The painted sky replaces the procedural sky; the engine's procedural backdrop is only needed where a tall phone shows beyond the plate.
 - **Tablet menu:** in the approved still the tablet screen is about 12x16 art pixels (about 72x96 CSS px at 1080p), too small to hold readable links. Plan: the tablet is the menu's trigger and the glass panel opens beside it as its enlarged screen.
-- **Waiting on:** step B of request 02 (dusk still, `tech-v1.png`) and `art/requests/03-creative-layers.md` (plate, tree, foreground sheet).
+- **Layers received:** `art/raw/layers/creative-plate.png` and `creative-tree.png` (see `art/prompts.md` for how each must be treated: the tree has a baked checkerboard to key out and is scaled to about 0.72). Originals as downloaded are kept in `art/raw/originals/`.
+- **No separate dusk still.** The dusk side is generated as layers edited from the creative layers, so both sides share geometry.
+- **Waiting on:** `art/requests/04-sheets-and-dusk-layers.md` (creative foreground sheet, dusk foreground sheet, dusk background, dusk tree; all on magenta where a cut-out is needed).
 - Prompts used so far are logged in `art/prompts.md`.
 
 ## Open questions for the owner

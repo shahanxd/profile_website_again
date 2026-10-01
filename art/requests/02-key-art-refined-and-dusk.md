@@ -1,5 +1,7 @@
 # Request 02: refined creative key art, then the dusk version
 
+> **Status:** step A is done and approved (`creative-v2.png`). **Step B is superseded**: the dusk side is now made directly as layers in `04-sheets-and-dusk-layers.md`.
+
 Both on **GPT Image 2.5** (it won the bake-off), run by hand in Weave's web app. About 16 credits.
 
 Settings for both: aspect ratio landscape 16:9, quality high, background opaque, format PNG. Download the original PNG.
