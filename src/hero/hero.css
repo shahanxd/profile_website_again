@@ -1,0 +1,166 @@
+/*
+ * The hero: the garden, with the copy laid over it.
+ *
+ * Everything here is measured in art pixels. --k is the size of one art pixel
+ * in CSS pixels. The script sets it exactly (see placeScene in Hero.tsx);
+ * until then CSS does the same sum as engine/camera.ts with what it can know,
+ * so the first paint is already in place and the script has nothing to move.
+ * The other numbers come from framing.ts as custom properties.
+ */
+.hero {
+  --k: max(100vw / var(--world-w), 100svh / var(--land-h));
+  --target-x: var(--land-x);
+  --target-y: var(--land-y);
+  --span-from: 0;
+  --span-to: var(--world-w);
+  --poster-left: clamp(
+    100% - var(--span-to) * var(--k),
+    var(--target-x) - var(--focus-x) * var(--k),
+    0px - var(--span-from) * var(--k)
+  );
+  --poster-top: min(var(--target-y) - var(--focus-y) * var(--k), 100% - var(--floor) * var(--k));
+}
+
+@media (orientation: portrait) {
+  .hero {
+    --k: max(100vw / var(--world-w), 100vw / var(--port-w));
+    --target-x: var(--port-x);
+    --target-y: var(--port-y);
+    --span-from: var(--port-from);
+    --span-to: var(--port-to);
+  }
+}
+
+/*
+ * An art pixel is a whole number of device pixels, so where the browser can
+ * round, --k is rounded to whole device pixels. CSS cannot read the pixel
+ * ratio as a number; --dpx (one device pixel) is set from the common ratios.
+ */
+@supports (width: round(1px, 1px)) {
+  .hero {
+    --dpx: 1px;
+    --k: max(round(up, 100vw / var(--world-w), var(--dpx)), round(100svh / var(--land-h), var(--dpx)));
+    /* the camera sits on whole art pixels */
+    --poster-left: clamp(
+      round(up, 100% - var(--span-to) * var(--k), var(--k)),
+      round(var(--target-x) - var(--focus-x) * var(--k), var(--k)),
+      0px - var(--span-from) * var(--k)
+    );
+    --poster-top: min(
+      round(var(--target-y) - var(--focus-y) * var(--k), var(--k)),
+      round(up, 100% - var(--floor) * var(--k), var(--k))
+    );
+  }
+
+  @media (orientation: portrait) {
+    .hero {
+      --k: round(up, 100vw / var(--port-w), var(--dpx));
+    }
+  }
+
+  /* prettier-ignore */
+  @media (min-resolution: 1.25dppx) { .hero { --dpx: calc(1px / 1.25); } }
+  /* prettier-ignore */
+  @media (min-resolution: 1.5dppx) { .hero { --dpx: calc(1px / 1.5); } }
+  /* prettier-ignore */
+  @media (min-resolution: 1.75dppx) { .hero { --dpx: calc(1px / 1.75); } }
+  /* prettier-ignore */
+  @media (min-resolution: 2dppx) { .hero { --dpx: calc(1px / 2); } }
+  /* prettier-ignore */
+  @media (min-resolution: 2.5dppx) { .hero { --dpx: calc(1px / 2.5); } }
+  /* prettier-ignore */
+  @media (min-resolution: 2.625dppx) { .hero { --dpx: calc(1px / 2.625); } }
+  /* prettier-ignore */
+  @media (min-resolution: 2.75dppx) { .hero { --dpx: calc(1px / 2.75); } }
+  /* prettier-ignore */
+  @media (min-resolution: 3dppx) { .hero { --dpx: calc(1px / 3); } }
+  /* prettier-ignore */
+  @media (min-resolution: 3.5dppx) { .hero { --dpx: calc(1px / 3.5); } }
+  /* prettier-ignore */
+  @media (min-resolution: 4dppx) { .hero { --dpx: calc(1px / 4); } }
+}
+
+/*
+ * The poster paints with the page; the canvas takes over once the engine has
+ * drawn a frame. Both sit on the same pixel grid, so nothing moves when it does.
+ */
+.garden {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.garden-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* The canvas is drawn one to one with the screen; if a browser ever scales it anyway, keep the edges hard. */
+  image-rendering: pixelated;
+}
+
+.garden-poster {
+  position: absolute;
+  left: var(--poster-left);
+  top: var(--poster-top);
+  width: calc(var(--world-w) * var(--k));
+  height: calc(var(--poster-h) * var(--k));
+  max-width: none;
+  image-rendering: pixelated;
+}
+
+/*
+ * The copy is sized and placed in art pixels too, so it keeps its place
+ * against the scene on every screen: over the tree's canopy on wide screens,
+ * in the open sky above the tree on tall ones.
+ */
+.hero-copy {
+  position: relative;
+  z-index: 10;
+  box-sizing: content-box;
+  max-width: calc(var(--k) * 132);
+  /* 4rem is the height of the fixed navigation */
+  padding: calc(4rem + var(--k) * 5) var(--gutter) calc(var(--k) * 8) max(var(--gutter), var(--k) * 9);
+}
+
+.hero-copy h1 {
+  font-size: calc(var(--k) * 11.5);
+  line-height: 1.06;
+}
+
+/*
+ * The second line sits on a small plate in the page colour. The scene behind
+ * it changes from blossom to sky to skyline as screens change shape, and text
+ * this size needs a ground it can rely on. Corners step in by one art pixel.
+ */
+.hero-copy p {
+  --step: var(--k);
+  display: inline-block;
+  margin-top: calc(var(--k) * 4);
+  padding: calc(var(--k) * 1.5) calc(var(--k) * 2.5);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: clamp(15px, var(--k) * 3.6, 2rem);
+  line-height: 1.35;
+  clip-path: polygon(
+    var(--step) 0,
+    calc(100% - var(--step)) 0,
+    calc(100% - var(--step)) var(--step),
+    100% var(--step),
+    100% calc(100% - var(--step)),
+    calc(100% - var(--step)) calc(100% - var(--step)),
+    calc(100% - var(--step)) 100%,
+    var(--step) 100%,
+    var(--step) calc(100% - var(--step)),
+    0 calc(100% - var(--step)),
+    0 var(--step),
+    var(--step) var(--step)
+  );
+}
+
+@media (orientation: portrait) {
+  .hero-copy {
+    max-width: none;
+    padding-inline: var(--gutter);
+  }
+}

@@ -10,6 +10,8 @@ A profile site for Shahan (@shahanxd) with exactly two sides, **creative** and *
 
 Milestone 1 (foundation) is done. Milestones are listed in `docs/PLAN.md`.
 
+**The latest commits on `dev` are work-in-progress snapshots** taken while two background agents were still building: the hero engine (its second stage, behaviour, was mid-edit, so `npm run typecheck` fails in `src/hero/engine` and `src/hero/scene`) and the art clean-up tooling (built, under review). `main` still points at the last commit that passes `npm run check`. Do not treat the engine as finished until a later commit says the check passes.
+
 Working now:
 
 - Vite 8 + React 19 + TypeScript + Tailwind 4. `npm run check` passes.
@@ -17,7 +19,13 @@ Working now:
 - Split switching: `src/split/store.ts` drives `data-split` on `<html>` (page colours), the URL, the tab title and the remembered split. An inline script in `index.html` applies the remembered split before first paint.
 - Plain, unstyled-but-tidy sections for both splits, fed from `src/content/site.ts`.
 
-Not built yet: the garden scene (the hero is text on a flat panel), the dissolve, the tablet menu and glass pill, all section motion, real art, real copy.
+In progress (see the note above):
+
+- `src/hero/engine/` (WebGL2 layered-sprite renderer), `src/hero/scene/` (manifest, framing, types), `src/hero/Hero.tsx` and `hero.css` (poster first, engine loaded after first paint), `src/split/dissolve.ts`.
+- `scripts/make-greybox.mjs`, `pack-atlas.mjs`, `make-posters.mjs` (`npm run art:build`): grey-box placeholder sprites in `art/sprites/`, packed to `public/art/atlas.*`, with a poster per split.
+- `tools/art/pixelize.mjs` and `tools/art/lib/`: the clean-up pipeline for generated art, with synthetic fixtures in `art/fixtures/` and usage in `art/README.md`.
+
+Not built yet: the page-wide dissolve overlay, the tablet menu and glass pill, all section motion, real art, real copy.
 
 ## Next steps, in order
 

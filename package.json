@@ -13,7 +13,11 @@
     "build:server": "vite build --ssr src/entry-server.tsx --outDir dist-ssr",
     "serve": "node scripts/serve-dist.mjs",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run build && node scripts/check-dist.mjs"
+    "check": "npm run typecheck && npm run build && node scripts/check-dist.mjs",
+    "art:greybox": "node scripts/make-greybox.mjs",
+    "art:atlas": "node scripts/pack-atlas.mjs",
+    "art:posters": "node scripts/make-posters.mjs",
+    "art:build": "npm run art:greybox && npm run art:atlas && npm run art:posters"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",
