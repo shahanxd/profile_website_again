@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en" data-split="creative">
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      // Runs before first paint. A split URL wins and is remembered; the bare
+      // address goes to the remembered split. Keep in sync with src/split/store.ts.
+      (function () {
+        var d = document.documentElement;
+        var p = location.pathname.replace(/\/+$/, '');
+        var s = /\/tech$/.test(p) ? 'tech' : /\/creative$/.test(p) ? 'creative' : null;
+        try {
+          if (s) localStorage.setItem('split', s);
+          else if (localStorage.getItem('split') === 'tech' && (p === '' || p === '/index.html')) {
+            location.replace('/tech' + location.search + location.hash);
+            return;
+          }
+        } catch (e) {}
+        d.setAttribute('data-split', s || 'creative');
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>shahan</title>
+    <meta name="description" content="shahan's profile: two sides of the same person, one garden." />
+    <meta name="theme-color" content="#f3e6cc" />
+  </head>
+  <body>
+    <div id="root"><!--app--></div>
+    <script type="module" src="/src/entry-client.tsx"></script>
+  </body>
+</html>

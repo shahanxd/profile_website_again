@@ -1,0 +1,46 @@
+/*
+ * Page colour tokens. The split store sets data-split on <html>; everything
+ * below the hero reads these, so switching splits re-colours the whole page.
+ * Starting values; they get reconciled with the hero's master palette once
+ * the key art is approved.
+ */
+:root {
+  /* one page pixel: borders, steps and pixel edges are multiples of this */
+  --px: 4px;
+  --page-max: 1120px;
+  --gutter: clamp(20px, 4vw, 40px);
+  --section-y: clamp(72px, 12vh, 144px);
+}
+
+@media (max-width: 767px) {
+  :root {
+    --px: 3px;
+  }
+}
+
+:root,
+:root[data-split='creative'] {
+  color-scheme: light;
+  --bg: #f3e6cc;
+  --bg-2: #ead7b0;
+  --ink: #2b1b12;
+  --ink-2: #6b4a33;
+  --line: #2b1b1226;
+  --accent: #a63a27;
+  --accent-2: #1f6f6b;
+  --gold: #c8922e;
+  --glass: rgb(255 244 220 / 0.55);
+}
+
+:root[data-split='tech'] {
+  color-scheme: dark;
+  --bg: #14162e;
+  --bg-2: #1d2142;
+  --ink: #f1e4c6;
+  --ink-2: #a9a6c4;
+  --line: #f1e4c626;
+  --accent: #f2a541;
+  --accent-2: #4fb3a6;
+  --gold: #e0b85a;
+  --glass: rgb(20 22 46 / 0.55);
+}

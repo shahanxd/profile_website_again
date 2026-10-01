@@ -1,0 +1,21 @@
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.log
+.DS_Store
+Thumbs.db
+
+# reference material that is not ours to redistribute
+agentic-landing-page.webm
+
+# art sources that never ship: the owner's photo and raw generations
+art/private/
+art/raw/
+
+# test output
+test-results/
+playwright-report/
+
+# local tool state
+.claude/settings.local.json
