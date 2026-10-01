@@ -1,9 +1,8 @@
 import { Text } from '../components/Text';
 import { site } from '../content/site';
-import { confirmedOnly } from '../content/visible';
 
 export function TechProof() {
-  const achievements = confirmedOnly(site.tech.proof.achievements);
+  const { achievements } = site.tech.proof;
   return (
     <ul className="divide-y divide-line border-y border-line">
       {achievements.map((achievement, i) => (
@@ -22,11 +21,8 @@ export function CreativeProof() {
     <div className="grid gap-8 md:grid-cols-2">
       {testimonials.map((testimonial, i) => (
         <figure key={i} className="border border-line p-6">
-          <blockquote className="font-display text-xl">“{testimonial.quote}”</blockquote>
-          <figcaption className="mt-4 text-sm text-ink-2">
-            {testimonial.name}
-            {testimonial.role && `, ${testimonial.role}`}
-          </figcaption>
+          <Text as="blockquote" copy={testimonial.quote} className="font-display text-xl" />
+          <Text as="figcaption" copy={testimonial.name} className="mt-4 text-sm text-ink-2" />
         </figure>
       ))}
     </div>

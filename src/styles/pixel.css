@@ -1,0 +1,682 @@
+/*
+ * The pixel primitives the sections are built from. One rule runs through
+ * all of it: pixel things sit on the page pixel (--px) and move in steps;
+ * pen-and-paper things (underlines) move smoothly. Anything that moves does
+ * so only under html[data-motion='on'], which src/motion/live.ts sets when
+ * the visitor has motion on and the page is not held still (?still=1); the
+ * state written here without that attribute is always the final one.
+ *
+ * Mask and pattern tiles come from scripts/build-section-art.mjs and are
+ * enlarged with image-rendering: pixelated, so they stay hard-edged.
+ */
+
+/* --- stepped corners ---------------------------------------------------------
+ * A box whose corners are cut in page pixels, as a pixel-art panel's are. */
+.step-1,
+.px-btn::before,
+.px-btn-face {
+  --c: var(--px);
+  clip-path: polygon(
+    var(--c) 0,
+    calc(100% - var(--c)) 0,
+    calc(100% - var(--c)) var(--c),
+    100% var(--c),
+    100% calc(100% - var(--c)),
+    calc(100% - var(--c)) calc(100% - var(--c)),
+    calc(100% - var(--c)) 100%,
+    var(--c) 100%,
+    var(--c) calc(100% - var(--c)),
+    0 calc(100% - var(--c)),
+    0 var(--c),
+    var(--c) var(--c)
+  );
+}
+
+.step-2 {
+  --c: var(--px);
+  --d: calc(var(--px) * 2);
+  clip-path: polygon(
+    var(--d) 0,
+    calc(100% - var(--d)) 0,
+    calc(100% - var(--d)) var(--c),
+    calc(100% - var(--c)) var(--c),
+    calc(100% - var(--c)) var(--d),
+    100% var(--d),
+    100% calc(100% - var(--d)),
+    calc(100% - var(--c)) calc(100% - var(--d)),
+    calc(100% - var(--c)) calc(100% - var(--c)),
+    calc(100% - var(--d)) calc(100% - var(--c)),
+    calc(100% - var(--d)) 100%,
+    var(--d) 100%,
+    var(--d) calc(100% - var(--c)),
+    var(--c) calc(100% - var(--c)),
+    var(--c) calc(100% - var(--d)),
+    0 calc(100% - var(--d)),
+    0 var(--d),
+    var(--c) var(--d),
+    var(--c) var(--c),
+    var(--d) var(--c)
+  );
+}
+
+/* --- Sprite --------------------------------------------------------------------
+ * A window one frame wide onto a strip of frames. One art pixel is --scale
+ * page pixels, so a sprite is always a whole multiple. The frames are stepped
+ * by the component (Web Animations), never tweened. */
+.sprite {
+  display: inline-block;
+  flex: none;
+  overflow: hidden;
+  width: calc(var(--w) * var(--scale, 1) * var(--px));
+  height: calc(var(--h) * var(--scale, 1) * var(--px));
+  line-height: 0;
+  vertical-align: bottom;
+}
+
+.sprite > img {
+  display: block;
+  width: auto;
+  max-width: none;
+  height: 100%;
+  image-rendering: pixelated;
+  user-select: none;
+}
+
+.sprite[data-flip] {
+  transform: scaleX(-1);
+}
+
+/* --- PixelImage ----------------------------------------------------------------
+ * Pixel art that fills its box at a whole-number scale: the art pixel is
+ * rounded up to whole CSS pixels and the overflow is cropped, centred. */
+.pixel-image {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: var(--w) / var(--h);
+  container-type: size;
+}
+
+.pixel-image > img {
+  --k: max(100cqw / var(--w), 100cqh / var(--h));
+  position: absolute;
+  left: calc((100cqw - var(--w) * var(--k)) / 2);
+  top: calc((100cqh - var(--h) * var(--k)) / 2);
+  width: calc(var(--w) * var(--k));
+  height: calc(var(--h) * var(--k));
+  max-width: none;
+  image-rendering: pixelated;
+}
+
+@supports (width: round(up, 1px, 1px)) {
+  .pixel-image > img {
+    --k: max(round(up, 100cqw / var(--w), 1px), round(up, 100cqh / var(--h), 1px));
+    left: round((100cqw - var(--w) * var(--k)) / 2, 1px);
+    top: round((100cqh - var(--h) * var(--k)) / 2, 1px);
+  }
+}
+
+/* --- PixelSeam -----------------------------------------------------------------
+ * Where a picture meets the page, the page breaks up into loose pixels: a
+ * strip in the page colour, masked from solid (at the page side) to nothing.
+ * A second, sparse layer of specks steps a little as the page scrolls. */
+.seam-hold {
+  position: relative;
+  z-index: 5;
+  height: 0;
+}
+
+.seam {
+  --seam-h: calc(var(--px) * 28);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  height: var(--seam-h);
+  overflow-x: clip;
+  pointer-events: none;
+}
+
+.seam[data-edge='top'] {
+  top: 0;
+  bottom: auto;
+  transform: scaleY(-1);
+}
+
+.seam > span {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  mask-image: url('/art/sections/tiles/seam.png');
+  mask-size: calc(var(--px) * 160) var(--seam-h);
+  mask-repeat: repeat-x;
+  image-rendering: pixelated;
+}
+
+.seam > .seam-drift {
+  /* wider than the strip, so stepping sideways never shows an end */
+  inset: 0 calc(var(--px) * -16);
+  mask-image: url('/art/sections/tiles/seam-drift.png');
+  transform: translate(calc(var(--seam-step, 0) * var(--px) * 2), calc(var(--seam-step, 0) * var(--px) * -1));
+}
+
+/* --- ResolveHeading and Reveal -------------------------------------------------
+ * While data-resolve is on an element it shows through a Bayer tile: step 0
+ * shows nothing, steps 1 to 7 show 2, 4 ... 14 pixels of every 16. The
+ * attribute is stepped by src/motion/resolve.ts and then removed, which
+ * leaves the element whole. */
+[data-resolve] {
+  mask-size: calc(var(--px) * 4) calc(var(--px) * 4);
+  image-rendering: pixelated;
+}
+
+[data-resolve='0'] {
+  opacity: 0;
+}
+
+[data-resolve='1'] {
+  mask-image: var(--dither-1);
+}
+
+[data-resolve='2'] {
+  mask-image: var(--dither-2);
+}
+
+[data-resolve='3'] {
+  mask-image: var(--dither-3);
+}
+
+[data-resolve='4'] {
+  mask-image: var(--dither-4);
+}
+
+[data-resolve='5'] {
+  mask-image: var(--dither-5);
+}
+
+[data-resolve='6'] {
+  mask-image: var(--dither-6);
+}
+
+[data-resolve='7'] {
+  mask-image: var(--dither-7);
+}
+
+/* The phrase a heading underlines, and the pen stroke under it. The stroke is
+ * uncovered from left to right once the heading has resolved. */
+.pen {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.pen-line {
+  position: absolute;
+  left: -2%;
+  bottom: -0.16em;
+  width: 104%;
+  height: 0.26em;
+  overflow: visible;
+  color: var(--accent);
+  clip-path: inset(-50% 0 -50% 0);
+}
+
+[data-resolve] .pen-line {
+  clip-path: inset(-50% 100% -50% 0);
+}
+
+html[data-motion='on'] .pen-line {
+  transition: clip-path var(--pen-ms) cubic-bezier(0.3, 0.6, 0.2, 1) 80ms;
+}
+
+html[data-motion='on'] [data-resolve] .pen-line {
+  transition: none;
+}
+
+/* --- PixelEdge -----------------------------------------------------------------
+ * A card or frame whose edges are eaten by pixels, over a hard offset shadow.
+ * The edge is a mask of four repeating strips (one per side, of different
+ * lengths so they never line up) around a solid middle; --cut slides the
+ * strips along, so neighbouring cards are not eaten alike. The shadow keeps
+ * straight edges: the eaten edge reads against it, and it is never thinner
+ * than its offset. */
+.pe {
+  position: relative;
+  display: block;
+}
+
+.pe-body {
+  --e: calc(var(--px) * 4);
+  mask-image:
+    url('/art/sections/tiles/edge-top.png'), url('/art/sections/tiles/edge-bottom.png'),
+    url('/art/sections/tiles/edge-left.png'), url('/art/sections/tiles/edge-right.png'), linear-gradient(#000, #000);
+  /* the middle overlaps the strips by a pixel, so no hairline can open between them at fractional sizes */
+  mask-size:
+    calc(var(--px) * 64) var(--e),
+    calc(var(--px) * 56) var(--e),
+    var(--e) calc(var(--px) * 48),
+    var(--e) calc(var(--px) * 40),
+    calc(100% - 2 * var(--e) + 2px) calc(100% - 2 * var(--e) + 2px);
+  mask-position:
+    calc(var(--cut, 0) * var(--px) * -9) 0,
+    calc(var(--cut, 0) * var(--px) * -5) 100%,
+    0 calc(var(--cut, 0) * var(--px) * -7),
+    100% calc(var(--cut, 0) * var(--px) * -11),
+    center;
+  mask-repeat: repeat-x, repeat-x, repeat-y, repeat-y, no-repeat;
+  image-rendering: pixelated;
+}
+
+.pe-body {
+  position: relative;
+  height: 100%;
+  padding: calc(var(--px) * 7);
+  background: var(--pe-fill, var(--card));
+  color: var(--pe-ink, var(--ink));
+}
+
+.pe-shadow {
+  position: absolute;
+  inset: 0;
+  background: var(--pe-shadow, var(--shade));
+  transform: translate(calc(var(--px) * 2), calc(var(--px) * 2));
+}
+
+.pe[data-fill='sunk'] {
+  --pe-fill: var(--bg-2);
+}
+
+.pe[data-fill='ink'] {
+  --pe-fill: var(--ink);
+  --pe-ink: var(--bg);
+}
+
+.pe[data-fill='accent'] {
+  --pe-fill: var(--accent);
+  --pe-ink: var(--accent-ink);
+}
+
+/* A frame holds a picture edge to edge; the eaten edge cuts into the picture itself. */
+.pe[data-variant='frame'] > .pe-body {
+  padding: 0;
+  overflow: hidden;
+  background: var(--pe-fill, var(--ink));
+}
+
+/* One page pixel up and to the left, at once: pixel things do not glide. */
+.pe[data-lift]:hover > .pe-body,
+.pe[data-lift]:focus-within > .pe-body {
+  transform: translate(calc(var(--px) * -1), calc(var(--px) * -1));
+}
+
+/* --- ArchFrame -----------------------------------------------------------------
+ * A cusped arch cut out of whatever is inside it. The two shoulders are
+ * fixed-size pixel tiles pinned to the top corners, with a straight run
+ * between them, so the arch keeps whole pixels at any width. --arch-scale
+ * enlarges the shoulders by whole multiples. */
+.arch {
+  position: relative;
+  display: block;
+  padding: var(--px);
+}
+
+.arch-rim,
+.arch-shadow,
+.arch-media {
+  --aw: calc(var(--px) * 20 * var(--arch-scale, 1));
+  mask-image:
+    url('/art/sections/tiles/arch-left.png'), url('/art/sections/tiles/arch-right.png'), linear-gradient(#000, #000),
+    linear-gradient(#000, #000);
+  mask-size:
+    var(--aw) var(--aw),
+    var(--aw) var(--aw),
+    calc(100% - 2 * var(--aw) + 2px) calc(var(--aw) + 1px),
+    100% calc(100% - var(--aw) + 1px);
+  mask-position:
+    0 0,
+    100% 0,
+    50% 0,
+    0 100%;
+  mask-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.arch-rim,
+.arch-shadow {
+  position: absolute;
+  inset: 0;
+}
+
+.arch-rim {
+  background: var(--arch-rim, var(--ink));
+}
+
+.arch-shadow {
+  background: var(--shade);
+  transform: translate(calc(var(--px) * 2), calc(var(--px) * 2));
+}
+
+.arch-media {
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  background: var(--bg-2);
+}
+
+/* A whole pointed arch: exactly two shoulders wide. */
+.arch[data-pointed] {
+  width: calc(var(--px) * (40 * var(--arch-scale, 1) + 2));
+}
+
+/* --- KilimDivider --------------------------------------------------------------
+ * The carpet's border as a rule between things: stepped diamonds, cut to a
+ * whole number of repeats, with a fringe of loose threads at each end. */
+.kilim {
+  --tile: calc(var(--px) * 16);
+  position: relative;
+  width: 100%;
+  height: calc(var(--px) * 11);
+  margin-inline: auto;
+  background: var(--kilim) left / var(--tile) 100% repeat-x;
+  image-rendering: pixelated;
+}
+
+@supports (width: round(down, 1px, 1px)) {
+  .kilim {
+    width: round(down, 100%, var(--tile));
+  }
+}
+
+.kilim::before,
+.kilim::after {
+  content: '';
+  position: absolute;
+  top: var(--px);
+  bottom: var(--px);
+  width: calc(var(--px) * 3);
+  background: repeating-linear-gradient(to bottom, var(--ink-3) 0 var(--px), transparent 0 calc(var(--px) * 2));
+}
+
+.kilim::before {
+  right: 100%;
+}
+
+.kilim::after {
+  left: 100%;
+}
+
+.kilim[data-bleed]::before,
+.kilim[data-bleed]::after {
+  content: none;
+}
+
+/* --- Glass ---------------------------------------------------------------------
+ * Glass that suits pixels: the blur of what is behind, a faint Bayer tile
+ * over it, corners cut in steps, and one page pixel of light along the top
+ * and left inner edge. Where the browser cannot blur, it is simply solid. */
+.glass {
+  position: relative;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(10px) saturate(1.3);
+  backdrop-filter: blur(10px) saturate(1.3);
+  box-shadow:
+    inset var(--px) var(--px) 0 var(--glass-edge),
+    inset calc(var(--px) * -1) calc(var(--px) * -1) 0 rgb(0 0 0 / 0.08);
+}
+
+.glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  opacity: 0.06;
+  mask-image: var(--dither-2);
+  mask-size: calc(var(--px) * 4) calc(var(--px) * 4);
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.glass > * {
+  position: relative;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--glass-solid);
+  }
+}
+
+/* --- PixelButton ---------------------------------------------------------------
+ * A face over a hard shadow one page pixel down and right. Pressing moves
+ * the face onto the shadow, at once. */
+.px-btn {
+  --btn-fill: var(--accent);
+  --btn-ink: var(--accent-ink);
+  --btn-shadow: var(--ink);
+  position: relative;
+  display: inline-block;
+  padding: 0 var(--px) var(--px) 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-family: var(--font-pixel);
+  font-size: var(--t-label);
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  text-transform: lowercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root[data-split='tech'] .px-btn {
+  --btn-shadow: #864c26;
+}
+
+.px-btn[data-tone='ink'] {
+  --btn-fill: var(--ink);
+  --btn-ink: var(--bg);
+  --btn-shadow: var(--accent);
+}
+
+.px-btn[data-tone='paper'] {
+  --btn-fill: var(--card);
+  --btn-ink: var(--ink);
+  --btn-shadow: var(--ink-3);
+}
+
+.px-btn::before {
+  content: '';
+  position: absolute;
+  inset: var(--px) 0 0 var(--px);
+  background: var(--btn-shadow);
+}
+
+.px-btn-face {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: calc(var(--px) * 10);
+  padding: calc(var(--px) * 2) calc(var(--px) * 5);
+  background: var(--btn-fill);
+  color: var(--btn-ink);
+}
+
+.px-btn:hover > .px-btn-face,
+.px-btn:focus-visible > .px-btn-face {
+  box-shadow: inset 0 calc(var(--px) * -1) 0 rgb(0 0 0 / 0.14);
+}
+
+.px-btn:active > .px-btn-face {
+  transform: translate(var(--px), var(--px));
+}
+
+/* --- PixelLink -----------------------------------------------------------------
+ * A link in the label face. At rest it stands on a row of faint dots; on
+ * hover or focus a row of dashes is laid over them from the left, in steps. */
+.px-link {
+  position: relative;
+  display: inline-block;
+  padding-bottom: calc(var(--px) * 1.5);
+  color: var(--accent);
+  font-family: var(--font-pixel);
+  font-size: var(--t-label);
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  text-transform: lowercase;
+}
+
+.px-link[data-inline] {
+  padding-bottom: var(--px);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+}
+
+.px-link::before,
+.px-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--hair);
+}
+
+.px-link::before {
+  background: repeating-linear-gradient(to right, currentColor 0 var(--hair), transparent 0 var(--px));
+  opacity: 0.55;
+}
+
+.px-link::after {
+  background: repeating-linear-gradient(to right, currentColor 0 calc(var(--px) * 2), transparent 0 calc(var(--px) * 3));
+  clip-path: inset(0 100% 0 0);
+}
+
+.px-link:hover::after,
+.px-link:focus-visible::after {
+  clip-path: inset(0);
+}
+
+html[data-motion='on'] .px-link::after {
+  transition: clip-path 280ms steps(7, end);
+}
+
+/* --- Section shell -------------------------------------------------------------- */
+.section {
+  padding-block: var(--section-y);
+}
+
+.section-head {
+  position: relative;
+  display: grid;
+  gap: var(--s-3);
+  margin-bottom: var(--s-6);
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.section-heading {
+  max-width: 18ch;
+  outline: none;
+  font-size: var(--t-h2);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  text-transform: lowercase;
+}
+
+/* Room beside the heading for one of the cast (a lantern, the parrot). */
+.section-ornament {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  line-height: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  /* above the heading, level with the label, so it never sits on the words */
+  .section-ornament {
+    bottom: calc(100% - var(--px) * 7);
+  }
+}
+
+/* The marker beside a section's label: an eight-rayed star cut like jali. At night it is lit, with a halo that gutters. */
+.spark {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: calc(var(--px) * 7);
+  height: calc(var(--px) * 7);
+}
+
+.spark::before,
+.spark::after {
+  content: '';
+  position: absolute;
+  background: var(--accent);
+  mask-size: 100% 100%;
+  image-rendering: pixelated;
+}
+
+.spark::after {
+  inset: 0;
+  mask-image: var(--tile-spark);
+}
+
+.spark::before {
+  inset: calc(var(--px) * -2);
+  opacity: 0;
+  mask-image: var(--tile-star);
+}
+
+:root[data-split='tech'] .spark::before {
+  opacity: 0.22;
+}
+
+html[data-motion='on'][data-split='tech'] .spark::before {
+  animation: spark-gutter 3.4s steps(1, end) infinite;
+}
+
+@keyframes spark-gutter {
+  0%,
+  100% {
+    opacity: 0.22;
+  }
+  38% {
+    opacity: 0.3;
+  }
+  46% {
+    opacity: 0.14;
+  }
+  52% {
+    opacity: 0.26;
+  }
+  80% {
+    opacity: 0.18;
+  }
+}
+
+/* --- AmbientLayer --------------------------------------------------------------
+ * One low-resolution canvas over the page, enlarged by whole page pixels.
+ * It goes quiet in steps while plain-toned content is being read. */
+.ambient {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 30;
+  image-rendering: pixelated;
+  pointer-events: none;
+  transition: opacity 360ms steps(4, end);
+}
+
+.ambient[data-quiet] {
+  opacity: 0;
+}

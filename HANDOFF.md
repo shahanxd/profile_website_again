@@ -14,6 +14,8 @@ Milestone 1 (foundation) is done. Milestones are listed in `docs/PLAN.md`.
 
 **Two background builds are running and their files are uncommitted while they work:** (1) real art into the hero (owns `src/hero/**`, the art scripts, `art/sprites`, atlas and posters); (2) the portfolio sections (owns `src/styles`, `src/components`, `src/sections`, `src/content`, `src/motion`, `public/art/sections`). `main` still points at the foundation commit; move it once both are reviewed in a browser.
 
+**Portfolio design system, first snapshot committed (in progress, unreviewed):** tokens for both moods taken from the scene palettes (`src/styles/tokens.css`), pixel and dither styles, the primitives in `src/components/` (PixelSeam, ResolveHeading, PixelEdge, Sprite, Reveal, AmbientLayer, SceneBand, KilimDivider, ArchFrame, PixelButton, Glass), the glass menu (`Menu.tsx`, replaces `TopNav`), `src/motion/`, and `scripts/build-section-art.mjs` (`npm run art:sections`), which cuts band images, sprite strips, thumbnails and pattern tiles out of `art/scene/` into `public/art/sections/`. Placeholders now ship in production (see the policy at the top of `src/content/types.ts`). `npm run check` passes at this commit and also verifies the section art exists. The section bodies are still the old plain ones.
+
 Working now:
 
 - Vite 8 + React 19 + TypeScript + Tailwind 4. `npm run check` passes.

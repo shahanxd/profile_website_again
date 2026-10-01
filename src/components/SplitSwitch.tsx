@@ -16,16 +16,14 @@ export function SplitSwitch({ className = '' }: { className?: string }) {
   };
 
   return (
-    <div className={`inline-flex border border-line font-pixel text-sm ${className}`} role="group" aria-label="profile">
+    <div className={`split-switch ${className}`} role="group" aria-label="profile">
       {SPLIT_IDS.map((id) => (
         <a
           key={id}
           href={SPLITS[id].path}
           onClick={go(id)}
           aria-current={shown === id ? 'page' : undefined}
-          className={`px-3 py-1.5 lowercase no-underline transition-colors ${
-            shown === id ? 'bg-ink text-bg' : 'text-ink-2 hover:text-ink'
-          }`}
+          className={shown === id ? 'step-1' : undefined}
         >
           {SPLITS[id].label}
         </a>

@@ -1,0 +1,344 @@
+/*
+ * The wordmark and the site menu (src/components/Menu.tsx).
+ *
+ * The menu is one element in three shapes: an open panel over the hero, a
+ * slim pill once the hero has scrolled away (data-compact), and on phones a
+ * pill at the bottom whose links live in a sheet. It is glass with a dark
+ * bezel one page pixel wide and a camera dot, so it reads as the tablet in
+ * the garden, enlarged.
+ */
+.wordmark {
+  position: fixed;
+  top: calc(var(--px) * 4);
+  left: max(var(--gutter), (100vw - var(--page-max)) / 2);
+  z-index: 40;
+  padding: calc(var(--px) * 1.5) calc(var(--px) * 3) calc(var(--px) * 2);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  text-transform: lowercase;
+}
+
+.wordmark:hover {
+  color: var(--accent);
+}
+
+.menu {
+  position: fixed;
+  top: calc(var(--px) * 4);
+  right: max(var(--gutter), (100vw - var(--page-max)) / 2);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--px) * 2);
+  width: calc(var(--px) * 50);
+  padding: calc(var(--px) * 3);
+  border: var(--px) solid var(--bezel);
+  color: var(--ink);
+  font-family: var(--font-pixel);
+  font-size: var(--t-label);
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: lowercase;
+}
+
+/* the tablet's camera, on the bezel */
+.menu::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--px) * -1);
+  left: calc(50% - var(--px) / 2);
+  width: var(--px);
+  height: var(--px);
+  background: var(--ink-3);
+}
+
+.menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* --- the split switch --- */
+.split-switch {
+  display: flex;
+  background: var(--line);
+  font-family: var(--font-pixel);
+  font-size: var(--t-label);
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: lowercase;
+}
+
+.split-switch a {
+  flex: 1;
+  padding: calc(var(--px) * 2) calc(var(--px) * 3);
+  color: var(--ink-2);
+  text-align: center;
+  text-decoration: none;
+}
+
+.split-switch a:hover {
+  color: var(--ink);
+}
+
+.split-switch a[aria-current] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+/* --- section links --- */
+.menu-links {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-links a {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--px) * 2);
+  padding: calc(var(--px) * 1.75) var(--px);
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+/* the marker: a page pixel that lights for the section being read */
+.menu-links a::before {
+  content: '';
+  flex: none;
+  width: var(--px);
+  height: var(--px);
+  background: currentColor;
+  opacity: 0.25;
+}
+
+.menu-links a:hover,
+.menu-links a:focus-visible {
+  background: var(--line);
+  color: var(--ink);
+}
+
+.menu-links a[aria-current] {
+  color: var(--ink);
+}
+
+.menu-links a[aria-current]::before {
+  background: var(--accent);
+  opacity: 1;
+}
+
+/* --- the motion switch --- */
+.menu-motion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--px) * 2);
+  padding: var(--px);
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.menu-motion > span {
+  min-width: calc(var(--px) * 9);
+  padding: var(--px) calc(var(--px) * 1.5);
+  background: var(--ink);
+  color: var(--bg);
+  text-align: center;
+}
+
+.menu-motion[aria-pressed='false'] > span {
+  background: var(--line);
+  color: var(--ink-2);
+}
+
+.menu-motion:hover {
+  color: var(--ink);
+}
+
+.menu-open {
+  display: none;
+  padding: calc(var(--px) * 2) calc(var(--px) * 3);
+  border: 0;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+/* --- folded: a slim pill, once the hero has gone --- */
+.menu[data-compact] {
+  flex-direction: row;
+  align-items: center;
+  width: auto;
+  padding: var(--px);
+}
+
+.menu[data-compact] .menu-links {
+  flex-direction: row;
+}
+
+.menu[data-compact] .menu-links a {
+  padding: calc(var(--px) * 2) calc(var(--px) * 2);
+}
+
+.menu[data-compact] .menu-motion {
+  padding-block: 0;
+}
+
+/* The fold happens in three quick steps of dither-like opacity, not a slide. */
+html[data-motion='on'] .menu[data-compact] {
+  animation: menu-fold 180ms steps(3, end);
+}
+
+@keyframes menu-fold {
+  from {
+    opacity: 0.2;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* --- phones: a pill at the bottom, the links in a sheet --- */
+@media (max-width: 767px) {
+  .wordmark {
+    top: calc(var(--px) * 4);
+    font-size: 19px;
+  }
+
+  .menu,
+  .menu[data-compact] {
+    top: auto;
+    right: 0;
+    bottom: calc(var(--px) * 5 + env(safe-area-inset-bottom, 0px));
+    left: 0;
+    flex-direction: row;
+    align-items: center;
+    width: fit-content;
+    margin-inline: auto;
+    padding: var(--px);
+    animation: none;
+  }
+
+  .menu-links,
+  .menu > .menu-motion {
+    display: none;
+  }
+
+  .menu-open {
+    display: block;
+  }
+
+  .split-switch a,
+  .menu-open {
+    padding-block: calc(var(--px) * 3.5);
+    padding-inline: calc(var(--px) * 4);
+  }
+
+  /* room under the last line of the page for the pill */
+  footer {
+    padding-bottom: calc(var(--px) * 22);
+  }
+}
+
+/* The sheet: paper with a pixel-eaten top edge, rising from the bottom. */
+.sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  max-width: none;
+  max-height: 86svh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+}
+
+.sheet::backdrop {
+  background: rgb(10 8 16 / 0.55);
+}
+
+html:has(.sheet[open]) {
+  overflow: hidden;
+}
+
+.sheet-body {
+  --e: calc(var(--px) * 4);
+  padding: calc(var(--px) * 10) var(--gutter) calc(var(--px) * 8 + env(safe-area-inset-bottom, 0px));
+  background: var(--card);
+  mask-image: url('/art/sections/tiles/edge-top.png'), linear-gradient(#000, #000);
+  mask-size:
+    calc(var(--px) * 64) var(--e),
+    100% calc(100% - var(--e) + 1px);
+  mask-position:
+    0 0,
+    0 100%;
+  mask-repeat: repeat-x, no-repeat;
+  image-rendering: pixelated;
+}
+
+.sheet ul {
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sheet-links a {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding-block: var(--s-2);
+  border-bottom: var(--hair) solid var(--line);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 1.1;
+  text-decoration: none;
+  text-transform: lowercase;
+}
+
+.sheet-links a[aria-current]::after {
+  content: '';
+  width: calc(var(--px) * 2);
+  height: calc(var(--px) * 2);
+  background: var(--accent);
+}
+
+.sheet-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+  font-family: var(--font-pixel);
+  font-size: var(--t-label);
+  letter-spacing: 0.03em;
+  text-transform: lowercase;
+}
+
+html[data-motion='on'] .sheet[open] {
+  animation: sheet-rise 200ms steps(5, end);
+}
+
+@keyframes sheet-rise {
+  from {
+    transform: translateY(60%);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

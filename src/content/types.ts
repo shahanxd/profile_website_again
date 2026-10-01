@@ -1,9 +1,18 @@
 import type { SplitId } from '../split/types';
+import type { sectionArt } from './sectionArt';
 
 /**
- * Copy that the owner has not written or approved yet is wrapped in draft().
- * Drafts render normally but are outlined in development, and `npm run check`
- * counts them, so nothing unapproved slips out unnoticed.
+ * The placeholder policy. Anything the owner has not supplied or approved yet
+ * still ships, as a stand-in that belongs to the page and says plainly what
+ * will go there. A stand-in never poses as a fact: no invented names,
+ * clients, awards or numbers. Two marks keep them findable:
+ *
+ *  - wording that is not the owner's is wrapped in draft();
+ *  - facts and pieces carry `confirmed: false` until the owner confirms or
+ *    supplies them.
+ *
+ * Both render the same in production. In development they are outlined
+ * (see Text.tsx and devMark in visible.ts).
  */
 export type Copy = string | { draft: string };
 
@@ -14,13 +23,27 @@ export const isDraft = (copy: Copy): boolean => typeof copy !== 'string';
 /** Section ids are shared by both splits, so a link like #work means the same place on either side. */
 export type SlotId = 'about' | 'work' | 'proof' | 'contact';
 
+/**
+ * A crop of the garden that stands in for a picture not supplied yet (the
+ * Thumb component draws it in the staging of the split being shown). One of:
+ * pavilion, pool, horizon, canopy, beds, lantern, carpet, sky, cypress, cat.
+ */
+export type ThumbName = (typeof sectionArt)['creative']['thumbs'][number];
+
+export interface Picture {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+}
+
 export interface LinkItem {
   kind: 'repo' | 'live' | 'package' | 'video' | 'social' | 'resume' | 'email';
   label: string;
   href: string;
 }
 
-/** A number or fact shown as evidence. Unconfirmed ones are never rendered in a production build. */
+/** A number or fact shown as evidence. Unconfirmed ones are old or unverified; give them an asOf so they do not pose as current. */
 export interface Result {
   value: string;
   label: string;
@@ -41,7 +64,10 @@ export interface Project {
   results: Result[];
   stack: string[];
   links: LinkItem[];
-  image?: { src: string; alt: string; width: number; height: number };
+  /** The stand-in picture, shown until `image` is supplied. */
+  thumb: ThumbName;
+  /** A real screenshot, diagram or capture. */
+  image?: Picture;
 }
 
 export interface Achievement {
@@ -61,19 +87,22 @@ export interface ShowcaseItem {
   year?: string;
   /** Videos load their player only when pressed. */
   youtubeId?: string;
-  image?: { src: string; alt: string; width: number; height: number };
+  /** The stand-in picture, shown until `image` (or a video) is supplied. */
+  thumb: ThumbName;
+  image?: Picture;
   href?: string;
   tone?: 'plain';
-  /** False until the owner supplies the real piece; hidden in production. */
+  /** False until the owner supplies the real piece; until then the title says what will go here. */
   confirmed: boolean;
 }
 
-/** Only real quotes supplied by the owner go here. */
+/** A client's words. Stand-ins say what will sit there and name nobody; real ones are supplied by the owner. */
 export interface Testimonial {
-  quote: string;
-  name: string;
-  role?: string;
+  quote: Copy;
+  /** Who said it. A stand-in says "name, what they do". */
+  name: Copy;
   href?: string;
+  confirmed: boolean;
 }
 
 export interface NavItem {
@@ -81,23 +110,30 @@ export interface NavItem {
   label: string;
 }
 
+/** A section's heading. `mark` is the phrase in it that gets the pen underline (it must appear in the heading as written). */
+interface Headed {
+  heading: Copy;
+  mark?: string;
+}
+
 interface SplitBase {
   hero: { line: Copy; sub: Copy };
   nav: NavItem[];
+  /** The scene band mid-page: one line and the headline numbers. */
   band: { line: Copy; numbers: Result[] };
-  contact: { heading: Copy; line: Copy; links: LinkItem[] };
+  contact: Headed & { line: Copy; links: LinkItem[]; note?: Copy };
 }
 
 export interface TechContent extends SplitBase {
-  about: { heading: Copy; paragraphs: Copy[]; toolkit: string[] };
-  work: { heading: Copy; intro?: Copy; projects: string[] };
-  proof: { heading: Copy; achievements: Achievement[] };
+  about: Headed & { paragraphs: Copy[]; toolkit: string[] };
+  work: Headed & { intro?: Copy; projects: string[] };
+  proof: Headed & { achievements: Achievement[] };
 }
 
 export interface CreativeContent extends SplitBase {
-  about: { heading: Copy; paragraphs: Copy[]; toolkit: string[] };
-  work: { heading: Copy; intro?: Copy; items: ShowcaseItem[] };
-  proof: { heading: Copy; testimonials: Testimonial[] };
+  about: Headed & { paragraphs: Copy[]; toolkit: string[] };
+  work: Headed & { intro?: Copy; items: ShowcaseItem[] };
+  proof: Headed & { testimonials: Testimonial[] };
 }
 
 export interface SiteContent {

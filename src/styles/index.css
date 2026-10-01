@@ -4,15 +4,27 @@
 @import '@fontsource-variable/jetbrains-mono';
 @import '@fontsource-variable/pixelify-sans';
 @import './tokens.css';
+@import './dither.css';
+@import './pixel.css' layer(components);
+@import './band.css' layer(components);
+@import './menu.css' layer(components);
 
 @theme inline {
   --color-bg: var(--bg);
   --color-bg-2: var(--bg-2);
+  --color-card: var(--card);
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
   --color-line: var(--line);
+  --color-shade: var(--shade);
   --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
   --color-accent-2: var(--accent-2);
+  --color-leaf: var(--leaf);
+  --color-brass: var(--brass);
+  --color-blossom: var(--blossom);
+  --color-orange: var(--orange);
   --color-gold: var(--gold);
   --font-display: 'Fraunces Variable', Georgia, serif;
   --font-sans: 'Instrument Sans Variable', system-ui, sans-serif;
@@ -23,7 +35,12 @@
 @layer base {
   html {
     background: var(--bg);
-    scroll-padding-top: 80px;
+    scroll-padding-top: calc(var(--px) * 18);
+  }
+
+  /* In-page links glide, but only for visitors who have motion on (src/motion/live.ts sets data-motion). */
+  html[data-motion='on'] {
+    scroll-behavior: smooth;
   }
 
   body {
@@ -32,15 +49,45 @@
     background: var(--bg);
     color: var(--ink);
     font-family: var(--font-sans);
-    font-size: 17px;
+    font-size: var(--t-body);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
+  /*
+   * The ground the sections stand on: paper grain by day, a few stars by
+   * night. Drawn on a layer of its own behind the content, because
+   * image-rendering is inherited and photographs must not turn to pixels.
+   */
+  main,
+  footer {
+    position: relative;
+    isolation: isolate;
+  }
+
+  main::before,
+  footer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: var(--ground);
+    background-size: var(--ground-size);
+    image-rendering: pixelated;
+    pointer-events: none;
+  }
+
+  /* Pixel edges are masks on boxes that may hold ordinary pictures; those stay smooth unless they ask otherwise. */
+  img,
+  video,
+  canvas {
+    image-rendering: auto;
+  }
+
   :focus-visible {
-    outline: calc(var(--px) / 2) solid var(--accent);
-    outline-offset: calc(var(--px) / 2);
+    outline: var(--hair) solid var(--accent);
+    outline-offset: var(--hair);
   }
 
   h1,
@@ -59,7 +106,7 @@
 
   ::selection {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-ink);
   }
 }
 
@@ -71,16 +118,12 @@
     padding-inline: var(--gutter);
   }
 
-  .section {
-    padding-block: var(--section-y);
-  }
-
   .eyebrow {
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: var(--t-caption);
     letter-spacing: 0.08em;
     text-transform: lowercase;
-    color: var(--ink-2);
+    color: var(--ink-3);
   }
 
   .skip-link {
@@ -97,9 +140,10 @@
     top: 12px;
   }
 
-  /* Unapproved copy, outlined in development only (see src/components/Text.tsx). */
+  /* Copy the owner has not written or approved yet, outlined in development only (see src/components/Text.tsx). */
   [data-draft] {
     text-decoration: underline dotted color-mix(in srgb, var(--accent) 60%, transparent);
+    text-decoration-thickness: 1px;
     text-underline-offset: 0.25em;
   }
 }

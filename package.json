@@ -17,7 +17,8 @@
     "art:greybox": "node scripts/make-greybox.mjs",
     "art:atlas": "node scripts/pack-atlas.mjs",
     "art:posters": "node scripts/make-posters.mjs",
-    "art:build": "npm run art:greybox && npm run art:atlas && npm run art:posters"
+    "art:build": "npm run art:greybox && npm run art:atlas && npm run art:posters",
+    "art:sections": "node scripts/build-section-art.mjs"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",

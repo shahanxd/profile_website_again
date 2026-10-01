@@ -1,15 +1,55 @@
 /*
- * Page colour tokens. The split store sets data-split on <html>; everything
- * below the hero reads these, so switching splits re-colours the whole page.
- * Starting values; they get reconciled with the hero's master palette once
- * the key art is approved.
+ * Page tokens. The split store sets data-split on <html>; everything below
+ * the hero reads these, so switching splits re-colours the whole page.
+ *
+ * The page is the garden continued: paper at golden hour (creative), the
+ * night sky (tech). Inks and accents are colours of the two stagings' own
+ * palettes (art/scene/<staging>/layout.json). The two grounds stay equal to
+ * themeColor in src/split/splits.ts, because the split dissolve covers the
+ * page in that colour; change them together.
+ *
+ * Text pairs, checked for contrast (WCAG): on the creative ground, ink 13.1,
+ * ink-2 9.2, ink-3 6.8, accent 6.1, leaf 4.7; on the tech ground, ink 16.5,
+ * ink-2 10.9, ink-3 6.1, accent 9.7, orange 6.5. On cards every one of them
+ * stays above 4.5. brass, blossom and violet are for shapes, not small text.
  */
 :root {
-  /* one page pixel: borders, steps and pixel edges are multiples of this */
+  /* one page pixel: every border, step, shadow offset and pixel edge is a multiple of this */
   --px: 4px;
+  /* pen and focus lines only: half a page pixel */
+  --hair: calc(var(--px) / 2);
+
   --page-max: 1120px;
   --gutter: clamp(20px, 4vw, 40px);
-  --section-y: clamp(72px, 12vh, 144px);
+  --section-y: clamp(96px, 15vh, 176px);
+
+  /* spacing, in page pixels */
+  --s-1: calc(var(--px) * 2);
+  --s-2: calc(var(--px) * 4);
+  --s-3: calc(var(--px) * 6);
+  --s-4: calc(var(--px) * 8);
+  --s-5: calc(var(--px) * 12);
+  --s-6: calc(var(--px) * 16);
+  --s-7: calc(var(--px) * 24);
+
+  /* type */
+  --t-caption: 12px;
+  --t-label: 14px;
+  --t-small: 15px;
+  --t-body: 17px;
+  --t-lead: clamp(19px, 0.6vw + 16px, 23px);
+  --t-h3: clamp(24px, 1.2vw + 18px, 34px);
+  --t-h2: clamp(40px, 4.6vw + 16px, 84px);
+  --t-number: clamp(40px, 3vw + 24px, 68px);
+
+  /* how long one step of a dither resolve lasts, and a pen stroke */
+  --step-ms: 64ms;
+  --pen-ms: 520ms;
+
+  /* pattern tiles, drawn by scripts/build-section-art.mjs */
+  --tile-jali: url('/art/sections/tiles/jali.png');
+  --tile-spark: url('/art/sections/tiles/spark.png');
+  --tile-star: url('/art/sections/tiles/star.png');
 }
 
 @media (max-width: 767px) {
@@ -22,25 +62,54 @@
 :root[data-split='creative'] {
   color-scheme: light;
   --bg: #f3e6cc;
-  --bg-2: #ead7b0;
-  --ink: #2b1b12;
-  --ink-2: #6b4a33;
-  --line: #2b1b1226;
-  --accent: #a63a27;
-  --accent-2: #1f6f6b;
-  --gold: #c8922e;
-  --glass: rgb(255 244 220 / 0.55);
+  --bg-2: #ead9b4;
+  --card: #faeddb;
+  --ink: #36190c;
+  --ink-2: #5b2e15;
+  --ink-3: #584b47;
+  --line: rgb(54 25 12 / 0.16);
+  --shade: #c9b89f;
+  --accent: #9c2d22;
+  --accent-ink: #faeddb;
+  --accent-2: #263953;
+  --leaf: #357413;
+  --brass: #c7971d;
+  --blossom: #f76476;
+  --orange: #d37624;
+  --gold: #c7971d;
+  --glass: rgb(250 237 219 / 0.66);
+  --glass-solid: #faeddb;
+  --glass-edge: rgb(255 255 255 / 0.55);
+  --bezel: #3d3c3c;
+  --ground: url('/art/sections/tiles/grain.png');
+  --ground-size: calc(var(--px) * 64);
+  --kilim: url('/art/sections/tiles/kilim-creative.png');
 }
 
 :root[data-split='tech'] {
   color-scheme: dark;
   --bg: #14162e;
-  --bg-2: #1d2142;
-  --ink: #f1e4c6;
-  --ink-2: #a9a6c4;
-  --line: #f1e4c626;
-  --accent: #f2a541;
-  --accent-2: #4fb3a6;
-  --gold: #e0b85a;
-  --glass: rgb(20 22 46 / 0.55);
+  --bg-2: #181b37;
+  --card: #1f2247;
+  --ink: #fef7d8;
+  --ink-2: #c7c6f9;
+  --ink-3: #9895a3;
+  --line: rgb(254 247 216 / 0.16);
+  --shade: #0a0b1c;
+  --accent: #f6b35d;
+  --accent-ink: #14162e;
+  --accent-2: #7484ca;
+  --leaf: #8f9e10;
+  --brass: #ffd84d;
+  --blossom: #fa6e92;
+  --orange: #f57a25;
+  --gold: #ffd84d;
+  --glass: rgb(24 27 55 / 0.62);
+  --glass-solid: #181b37;
+  --glass-edge: rgb(199 198 249 / 0.28);
+  --bezel: #0a0b1c;
+  /* two star fields of sizes that never line up, so the sky does not visibly repeat */
+  --ground: url('/art/sections/tiles/stars-a.png'), url('/art/sections/tiles/stars-b.png');
+  --ground-size: calc(var(--px) * 211), calc(var(--px) * 307);
+  --kilim: url('/art/sections/tiles/kilim-tech.png');
 }

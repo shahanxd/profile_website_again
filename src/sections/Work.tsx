@@ -1,7 +1,7 @@
 import { Text } from '../components/Text';
 import { site } from '../content/site';
 import type { LinkItem, Project, Result, ShowcaseItem } from '../content/types';
-import { confirmedOnly, SHOW_UNCONFIRMED } from '../content/visible';
+import { Thumb } from '../components/PixelImage';
 
 function Links({ links }: { links: LinkItem[] }) {
   return (
@@ -18,11 +18,10 @@ function Links({ links }: { links: LinkItem[] }) {
 }
 
 function Results({ results }: { results: Result[] }) {
-  const shown = confirmedOnly(results);
-  if (shown.length === 0) return null;
+  if (results.length === 0) return null;
   return (
     <dl className="flex flex-wrap gap-x-10 gap-y-4">
-      {shown.map((result) => (
+      {results.map((result) => (
         <div key={result.label} className="max-w-[22ch]">
           <dt className="font-display text-3xl">{result.value}</dt>
           <dd className="mt-1 text-sm text-ink-2">{result.label}</dd>
@@ -102,9 +101,7 @@ const KIND_LABEL: Record<ShowcaseItem['kind'], string> = {
 function ShowcaseCard({ item }: { item: ShowcaseItem }) {
   const body = (
     <>
-      <div className="flex aspect-video items-center justify-center border border-line bg-bg-2">
-        {!item.confirmed && SHOW_UNCONFIRMED && <span className="eyebrow">placeholder</span>}
-      </div>
+      <Thumb name={item.thumb} />
       <p className="eyebrow mt-4">{KIND_LABEL[item.kind]}</p>
       <Text as="h3" copy={item.title} className="mt-1 text-2xl lowercase" />
       {item.role && <Text as="p" copy={item.role} className="mt-2 text-sm text-ink-2" />}
@@ -124,7 +121,7 @@ function ShowcaseCard({ item }: { item: ShowcaseItem }) {
 }
 
 export function CreativeWork() {
-  const items = confirmedOnly(site.creative.work.items);
+  const { items } = site.creative.work;
   return (
     <div className="grid gap-x-6 gap-y-12 md:grid-cols-2">
       {items.map((item) => (

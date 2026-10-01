@@ -2,9 +2,11 @@ import { draft, type LinkItem, type SiteContent } from './types';
 
 /**
  * Everything the site says lives here. Facts below come from the owner's
- * public READMEs; wording wrapped in draft() is mine and waits for the owner.
- * Results marked confirmed: false are old or unverified and stay out of
- * production builds until the owner confirms them.
+ * public READMEs. Two things mark what the owner still has to write or supply
+ * (search for them): wording wrapped in draft() is not the owner's yet, and
+ * `confirmed: false` is a fact or piece not confirmed or supplied yet. Both
+ * ship, so stand-ins are written as stand-ins: they say what will go there,
+ * and never invent a name, a client, an award or a number.
  */
 
 const github: LinkItem = { kind: 'social', label: 'github', href: 'https://github.com/shahanxd' };
@@ -25,6 +27,7 @@ const repo = (name: string): LinkItem => ({
 export const site: SiteContent = {
   owner: { name: 'shahan', handle: 'shahanxd', city: 'delhi' },
 
+  // `thumb` is the corner of the garden that stands in until a real screenshot, diagram or capture goes in `image`.
   projects: {
     metagross: {
       id: 'metagross',
@@ -41,6 +44,7 @@ export const site: SiteContent = {
       ],
       stack: ['python', 'stereo vision', 'visual odometry', 'mppi planning', 'three.js simulator'],
       links: [repo('metagross')],
+      thumb: 'carpet',
     },
     cassetto: {
       id: 'cassetto',
@@ -60,6 +64,7 @@ export const site: SiteContent = {
         repo('cassetto'),
         { kind: 'package', label: 'pypi', href: 'https://pypi.org/project/cassetto/' },
       ],
+      thumb: 'lantern',
     },
     undumployed: {
       id: 'undumployed',
@@ -78,6 +83,7 @@ export const site: SiteContent = {
         { kind: 'live', label: 'visit', href: 'https://undumployed.vercel.app/' },
         repo('undumployed'),
       ],
+      thumb: 'pavilion',
     },
     sumud: {
       id: 'sumud',
@@ -89,6 +95,7 @@ export const site: SiteContent = {
       results: [],
       stack: ['godot 4', 'gdscript'],
       links: [repo('sumud')],
+      thumb: 'sky',
     },
     'ml-compiler-bench': {
       id: 'ml-compiler-bench',
@@ -102,6 +109,7 @@ export const site: SiteContent = {
       ],
       stack: ['python', 'pytorch', 'torchscript', 'bladedisc'],
       links: [repo('ml-compiler-bench')],
+      thumb: 'pool',
     },
     vllmbench: {
       id: 'vllmbench',
@@ -112,6 +120,7 @@ export const site: SiteContent = {
       results: [],
       stack: ['python', 'vllm', 'huggingface', 'awq quantization'],
       links: [repo('vLLMbench')],
+      thumb: 'horizon',
     },
     'good-nano-gpt': {
       id: 'good-nano-gpt',
@@ -122,6 +131,7 @@ export const site: SiteContent = {
       results: [],
       stack: ['python', 'pytorch'],
       links: [repo('good-nano-gpt')],
+      thumb: 'canopy',
     },
     salamah: {
       id: 'salamah',
@@ -129,10 +139,11 @@ export const site: SiteContent = {
       size: 'grid',
       tone: 'plain',
       line: 'a tool to help ngos track displaced people in a crisis.',
-      body: draft('status and details to come from the owner.'),
+      body: draft('what it does today, and who it is for, will be written here.'),
       results: [],
       stack: ['javascript'],
       links: [repo('salamah')],
+      thumb: 'cypress',
     },
   },
 
@@ -149,6 +160,7 @@ export const site: SiteContent = {
     ],
     about: {
       heading: draft('hi, i am shahan'),
+      mark: 'shahan',
       paragraphs: [
         draft(
           'i started with cs50x in my first year and have not stopped building since. these days it is mostly machine learning systems: compilers, inference, and the tooling around them.',
@@ -159,6 +171,8 @@ export const site: SiteContent = {
     },
     work: {
       heading: draft('things i have built'),
+      mark: 'built',
+      intro: draft('three in depth, then the rest.'),
       projects: [
         'metagross',
         'cassetto',
@@ -179,15 +193,19 @@ export const site: SiteContent = {
     },
     proof: {
       heading: draft('along the way'),
+      mark: 'the way',
       achievements: [
         { title: draft('smart india hackathon 2026: metagross submitted'), year: '2026', confirmed: false },
         { title: draft('cassetto published on pypi'), year: '2026', confirmed: false },
         { title: draft('cs50x completed; this site began as its final project'), year: '2025', confirmed: false },
+        { title: draft('the next line goes here, once it is earned.'), year: 'soon', confirmed: false },
       ],
     },
     contact: {
       heading: draft('say hello'),
+      mark: 'hello',
       line: draft('the fastest way to reach me is a message.'),
+      note: draft('an email address and a resume will be linked here.'),
       links: [github, linkedin],
     },
   },
@@ -205,11 +223,17 @@ export const site: SiteContent = {
     ],
     about: {
       heading: draft('why i do this'),
-      paragraphs: [draft('your words go here: why you edit and design, and what you look for in a piece of work.')],
+      mark: 'this',
+      paragraphs: [
+        draft('this is where i say why i edit and design. the honest version is still being written.'),
+        draft('it will be short, and it will not use the word passionate.'),
+      ],
       toolkit: ['premiere pro', 'photoshop', 'lightroom', 'illustrator', 'canva'],
     },
     work: {
       heading: draft('selected work'),
+      mark: 'work',
+      intro: draft('the real pieces are on their way. until then, the garden is standing in for them.'),
       items: [
         {
           id: 'sumud',
@@ -218,12 +242,57 @@ export const site: SiteContent = {
           title: 'sumud',
           role: 'a 2d narrative adventure about one family in gaza, told over ten days. a game about staying.',
           href: 'https://github.com/shahanxd/sumud',
+          thumb: 'sky',
           confirmed: true,
         },
-        { id: 'video-1', kind: 'video', title: draft('a video edit of yours'), confirmed: false },
-        { id: 'video-2', kind: 'video', title: draft('a video edit of yours'), confirmed: false },
-        { id: 'design-1', kind: 'design', title: draft('a design piece of yours'), confirmed: false },
-        { id: 'design-2', kind: 'design', title: draft('a design piece of yours'), confirmed: false },
+        {
+          id: 'video-1',
+          kind: 'video',
+          title: draft('a video edit will sit here'),
+          role: draft('the one i am proudest of, once i pick it.'),
+          thumb: 'horizon',
+          confirmed: false,
+        },
+        {
+          id: 'video-2',
+          kind: 'video',
+          title: draft('another edit, probably a faster one'),
+          role: draft('title, client and running time to come.'),
+          thumb: 'pool',
+          confirmed: false,
+        },
+        {
+          id: 'video-3',
+          kind: 'video',
+          title: draft('a reel, when it is cut'),
+          role: draft('a minute or so of the best bits.'),
+          thumb: 'canopy',
+          confirmed: false,
+        },
+        {
+          id: 'design-1',
+          kind: 'design',
+          title: draft('a poster goes here'),
+          role: draft('still choosing which one.'),
+          thumb: 'pavilion',
+          confirmed: false,
+        },
+        {
+          id: 'design-2',
+          kind: 'design',
+          title: draft('a set of thumbnails'),
+          role: draft('the set, side by side. to come.'),
+          thumb: 'beds',
+          confirmed: false,
+        },
+        {
+          id: 'design-3',
+          kind: 'design',
+          title: draft('a brand piece'),
+          role: draft('a mark, its colours, and where they went.'),
+          thumb: 'lantern',
+          confirmed: false,
+        },
       ],
     },
     band: {
@@ -235,11 +304,30 @@ export const site: SiteContent = {
     },
     proof: {
       heading: draft('what clients said'),
-      testimonials: [],
+      mark: 'said',
+      testimonials: [
+        {
+          quote: draft("a client's words will sit here. something kind, hopefully."),
+          name: draft('name, what they do'),
+          confirmed: false,
+        },
+        {
+          quote: draft('a second opinion goes here, ideally one about deadlines.'),
+          name: draft('name, where they work'),
+          confirmed: false,
+        },
+        {
+          quote: draft('room for one more. short is fine.'),
+          name: draft('name, how we met'),
+          confirmed: false,
+        },
+      ],
     },
     contact: {
       heading: draft('work with me'),
+      mark: 'with me',
       line: draft('tell me what you are making and when you need it.'),
+      note: draft('an email address will be linked here.'),
       links: [instagram, youtube],
     },
   },

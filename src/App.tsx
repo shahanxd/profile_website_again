@@ -1,9 +1,12 @@
-import { TopNav } from './components/TopNav';
+import { AmbientLayer } from './components/AmbientLayer';
+import { Menu } from './components/Menu';
+import { PixelSeam } from './components/PixelSeam';
+import { SceneBand } from './components/SceneBand';
 import { site } from './content/site';
 import { hasProof } from './content/visible';
 import { Hero } from './hero/Hero';
+import { MotionRoot } from './motion/live';
 import { About } from './sections/About';
-import { Band } from './sections/Band';
 import { Contact, Footer } from './sections/Contact';
 import { CreativeProof, TechProof } from './sections/Proof';
 import { Section } from './sections/Section';
@@ -22,26 +25,35 @@ export function App() {
       <a href="#about" className="skip-link">
         skip to content
       </a>
-      <TopNav />
+      <MotionRoot />
+      <Menu />
       <Hero />
+      <PixelSeam after />
       <main>
-        <Section id="about" index={1} label={label('about')} heading={content.about.heading}>
+        <Section id="about" index={1} label={label('about')} heading={content.about.heading} mark={content.about.mark}>
           <About paragraphs={content.about.paragraphs} toolkit={content.about.toolkit} />
         </Section>
-        <Section id="work" index={2} label={label('work')} heading={content.work.heading}>
+        <Section id="work" index={2} label={label('work')} heading={content.work.heading} mark={content.work.mark}>
           {split === 'tech' ? <TechWork /> : <CreativeWork />}
         </Section>
-        <Band line={content.band.line} numbers={content.band.numbers} />
+        <SceneBand line={content.band.line} numbers={content.band.numbers} />
         {showProof && (
-          <Section id="proof" index={3} label={label('proof')} heading={content.proof.heading}>
+          <Section id="proof" index={3} label={label('proof')} heading={content.proof.heading} mark={content.proof.mark}>
             {split === 'tech' ? <TechProof /> : <CreativeProof />}
           </Section>
         )}
-        <Section id="contact" index={showProof ? 4 : 3} label={label('contact')} heading={content.contact.heading}>
+        <Section
+          id="contact"
+          index={showProof ? 4 : 3}
+          label={label('contact')}
+          heading={content.contact.heading}
+          mark={content.contact.mark}
+        >
           <Contact line={content.contact.line} links={content.contact.links} />
         </Section>
       </main>
       <Footer name={site.owner.name} city={site.owner.city} />
+      <AmbientLayer />
       <DissolveOverlay />
     </>
   );

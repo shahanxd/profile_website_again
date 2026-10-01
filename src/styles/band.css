@@ -1,0 +1,296 @@
+/*
+ * The scene band: the garden itself, full width, mid-page.
+ *
+ * --k is one art pixel in CSS pixels: the smallest whole number that makes
+ * the 352 x 198 scene cover the band. The stage is the whole scene at that
+ * scale, slid so the focus point (art pixels, set by the component) sits in
+ * the middle, and never past the scene's own edges. Everything living in the
+ * scene is placed in art pixels and so stays on its grid.
+ */
+.band {
+  position: relative;
+  height: clamp(420px, 72vh, 680px);
+  overflow: hidden;
+  container-type: size;
+  background: var(--bg-2);
+}
+
+.band-stage {
+  --k: max(100cqw / 352, 100cqh / 198);
+  /* sprites inside measure themselves in page pixels; here a page pixel is an art pixel */
+  --px: var(--k);
+  position: absolute;
+  left: clamp(100cqw - 352 * var(--k), 50cqw - var(--focus-x) * var(--k), 0px);
+  top: clamp(100cqh - 198 * var(--k), 50cqh - var(--focus-y) * var(--k), 0px);
+  width: calc(352 * var(--k));
+  height: calc(198 * var(--k));
+}
+
+@supports (width: round(up, 1px, 1px)) {
+  .band-stage {
+    --k: max(round(up, 100cqw / 352, 1px), round(up, 100cqh / 198, 1px));
+    left: clamp(100cqw - 352 * var(--k), round(50cqw - var(--focus-x) * var(--k), 1px), 0px);
+    top: clamp(100cqh - 198 * var(--k), round(50cqh - var(--focus-y) * var(--k), 1px), 0px);
+  }
+}
+
+.band-stage > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  image-rendering: pixelated;
+}
+
+.band-thing,
+.band-sparkle,
+.band-glint,
+.band-window,
+.band-firefly {
+  position: absolute;
+  left: calc(var(--x) * var(--k));
+  top: calc(var(--y) * var(--k));
+}
+
+.band-sparkle,
+.band-glint,
+.band-window,
+.band-firefly {
+  width: var(--k);
+  height: var(--k);
+}
+
+/* The states written here are the still picture; the loops below only run while the band is on screen with motion on. */
+.band-sparkle {
+  background: #fef7d8;
+  opacity: 0.9;
+}
+
+.band-glint {
+  width: calc(var(--k) * 2);
+  background: #fef7d8;
+  opacity: 0.7;
+}
+
+.band-window {
+  opacity: 0;
+}
+
+.band-firefly {
+  background: #ffd84d;
+  box-shadow:
+    var(--k) 0 0 rgb(246 179 93 / 0.35),
+    calc(var(--k) * -1) 0 0 rgb(246 179 93 / 0.35),
+    0 var(--k) 0 rgb(246 179 93 / 0.35),
+    0 calc(var(--k) * -1) 0 rgb(246 179 93 / 0.35);
+}
+
+html[data-motion='on'] .band[data-on] .band-sparkle {
+  animation: band-sparkle 1.8s steps(1, end) infinite;
+}
+
+html[data-motion='on'] .band[data-on] .band-glint {
+  animation: band-glint 7.6s steps(1, end) infinite;
+}
+
+html[data-motion='on'] .band[data-on] .band-window {
+  animation: band-window 18.5s steps(1, end) infinite;
+}
+
+html[data-motion='on'] .band[data-on] .band-firefly {
+  animation:
+    band-wander 13s steps(1, end) infinite,
+    band-glow 4.2s steps(1, end) infinite;
+}
+
+html[data-motion='on'] .band[data-on] .band-kite {
+  animation: band-kite 11s steps(1, end) infinite;
+}
+
+/* A drop thrown up by the fountain: up two pixels, then gone. */
+@keyframes band-sparkle {
+  0% {
+    opacity: 0.95;
+    transform: translateY(0);
+  }
+  22% {
+    opacity: 0.95;
+    transform: translateY(calc(var(--k) * -1));
+  }
+  44% {
+    opacity: 0.6;
+    transform: translateY(calc(var(--k) * -2));
+  }
+  62%,
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+
+/* Light on the water: mostly dark, a short flash, an afterglow. */
+@keyframes band-glint {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  6% {
+    opacity: 0.9;
+  }
+  12% {
+    opacity: 0.5;
+  }
+  17% {
+    opacity: 0;
+  }
+  58% {
+    opacity: 0.6;
+  }
+  63% {
+    opacity: 0;
+  }
+}
+
+/* A lit window goes dark for a while (the square is the dark pane, drawn over the lit one). */
+@keyframes band-window {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  70% {
+    opacity: 1;
+  }
+  91% {
+    opacity: 0;
+  }
+}
+
+@keyframes band-wander {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  12% {
+    transform: translate(var(--k), calc(var(--k) * -1));
+  }
+  25% {
+    transform: translate(calc(var(--k) * 2), calc(var(--k) * -1));
+  }
+  38% {
+    transform: translate(calc(var(--k) * 3), calc(var(--k) * -2));
+  }
+  50% {
+    transform: translate(calc(var(--k) * 2), calc(var(--k) * -3));
+  }
+  63% {
+    transform: translate(var(--k), calc(var(--k) * -3));
+  }
+  76% {
+    transform: translate(0, calc(var(--k) * -2));
+  }
+  88% {
+    transform: translate(calc(var(--k) * -1), calc(var(--k) * -1));
+  }
+}
+
+@keyframes band-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.55;
+  }
+  58% {
+    opacity: 0;
+  }
+  86% {
+    opacity: 0.55;
+  }
+}
+
+/* A kite tugs on its string: a few art pixels out and back, one step at a time. */
+@keyframes band-kite {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  14% {
+    transform: translate(var(--k), calc(var(--k) * -1));
+  }
+  28% {
+    transform: translate(calc(var(--k) * 3), calc(var(--k) * -1));
+  }
+  42% {
+    transform: translate(calc(var(--k) * 4), 0);
+  }
+  57% {
+    transform: translate(calc(var(--k) * 3), var(--k));
+  }
+  71% {
+    transform: translate(calc(var(--k) * 2), var(--k));
+  }
+  85% {
+    transform: translate(var(--k), 0);
+  }
+}
+
+/* The numbers, on glass, low on the left where the lawn is. */
+.band-content {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  padding-block: calc(var(--px) * 22);
+  pointer-events: none;
+}
+
+.band-panel {
+  max-width: min(100%, 34rem);
+  padding: var(--s-3) var(--s-4) var(--s-4);
+  color: var(--ink);
+  pointer-events: auto;
+}
+
+.band-line {
+  font-family: var(--font-display);
+  font-size: var(--t-h3);
+  line-height: 1.15;
+  text-transform: lowercase;
+}
+
+.band-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-5);
+  margin-top: var(--s-3);
+}
+
+.band-numbers dt {
+  font-family: var(--font-display);
+  font-size: var(--t-number);
+  line-height: 1;
+}
+
+.band-numbers dd {
+  margin-top: var(--s-1);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: var(--t-caption);
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  text-transform: lowercase;
+}
+
+.band-as-of {
+  display: block;
+  color: var(--ink-3);
+}
+
+@media (max-width: 767px) {
+  .band-panel {
+    padding: var(--s-3);
+  }
+}
