@@ -47,7 +47,7 @@ Prompts and settings are in `art/requests/04-sheets-and-dusk-layers.md`.
 |---|---|---|
 | 1, creative sheet | `art/raw/layers/creative-sheet.png` | **Good.** Eight separate things on flat magenta (figure, parrot, cat, tray, table with tablet, lantern, two kites). Drawn at varying scale, so each is resized to its height in the approved still. |
 | 2, dusk sheet | `art/raw/layers/tech-sheet.png` | **Good.** Six things (figure reclining with laptop and sleeping parrot, cat asleep, lunch tray, table with glowing tablet, lit lantern, rover). Needs the laptop logo painted out and its glow halos handled. |
-| 3, dusk background | not received yet | |
-| 4, dusk tree | not received yet | |
+| 3, dusk background | `art/raw/layers/tech-plate.png` | **Good.** Same garden at dusk: indigo sky, moon, stars, afterglow, lit windows, lamp in the pavilion, lantern light on the carpet. Geometry matches the creative plate. |
+| 4, dusk tree | `art/raw/layers/tech-tree.png` | **Good, with one fix.** Same tree in green on flat magenta, but lit like daytime; shaded darker in the build script except near the lantern. |
 
 Note: the owner's likeness came out right from the text description alone, so the photo has not been uploaded anywhere.

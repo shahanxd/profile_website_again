@@ -41,23 +41,25 @@ const STAGINGS = {
         { id: 'tray', foot: [362, 548], height: 75, z: 58 },
         { id: 'table', foot: [436, 510], height: 128, z: 45 },
         { id: 'lantern', top: [236, 92], height: 145, z: 30 },
-        { id: 'kite-a', foot: [972, 310], height: 34, z: 5 },
-        { id: 'kite-b', foot: [1046, 304], height: 26, z: 5 },
+        // The kite tails are pink and violet, close enough to magenta that peeling would eat them.
+        { id: 'kite-a', foot: [972, 310], height: 34, z: 5, peel: false },
+        { id: 'kite-b', foot: [1046, 304], height: 26, z: 5, peel: false },
       ],
     },
   },
   tech: {
     plate: 'layers/tech-plate.png',
-    tree: { file: 'layers/tech-tree.png', key: 'magenta', scale: 0.68, at: [0, 0] },
+    // The dusk tree was generated in daylight colours, so it is darkened here, except near the lit lantern.
+    tree: { file: 'layers/tech-tree.png', key: 'magenta', scale: 0.68, at: [0, 0], shade: { tint: [0.5, 0.6, 0.72], light: [236, 170], radius: 230 } },
     sheet: {
       file: 'layers/tech-sheet.png',
       things: [
-        { id: 'figure', foot: [250, 512], height: 186, z: 50 },
-        { id: 'cat', foot: [66, 522], height: 62, z: 60 },
-        { id: 'tray', foot: [345, 542], height: 56, z: 58 },
+        { id: 'figure', foot: [262, 506], height: 165, z: 50 },
+        { id: 'cat', foot: [70, 522], height: 62, z: 60 },
+        { id: 'tray', foot: [300, 562], height: 57, z: 58 },
         { id: 'table', foot: [436, 510], height: 128, z: 45 },
-        { id: 'lantern', top: [205, 96], height: 150, z: 30 },
-        { id: 'rover', foot: [470, 560], height: 60, z: 62 },
+        { id: 'lantern', top: [236, 92], height: 150, z: 30 },
+        { id: 'rover', foot: [500, 542], height: 58, z: 62 },
       ],
     },
   },
@@ -187,6 +189,25 @@ function reduce(image, opaque, box, outW, outH) {
     }
   }
   return { data: out, w: outW, h: outH };
+}
+
+/**
+ * Darkens a sprite towards `tint` (a multiplier per channel), fading back to its
+ * own colours near a light. `light` and `radius` are in raw pixels; `origin` is
+ * where the sprite sits on the grid.
+ */
+function shade(sprite, origin, { tint, light, radius }) {
+  const lx = light[0] * REDUCE;
+  const ly = light[1] * REDUCE;
+  const reach = radius * REDUCE;
+  for (let y = 0; y < sprite.h; y++) {
+    for (let x = 0; x < sprite.w; x++) {
+      const o = (y * sprite.w + x) * 4;
+      if (!sprite.data[o + 3]) continue;
+      const lit = Math.max(0, 1 - Math.hypot(x + origin[0] - lx, y + origin[1] - ly) / reach) ** 2;
+      for (let c = 0; c < 3; c++) sprite.data[o + c] = Math.round(sprite.data[o + c] * (tint[c] + (1 - tint[c]) * lit));
+    }
+  }
 }
 
 /** Crops fully transparent rows and columns away. Returns the sprite and how far its origin moved. */
@@ -375,18 +396,15 @@ async function buildStaging(name, enlarge) {
   const treeMask = config.tree.key === 'checker' ? mask(tree, isChecker) : mask(tree, isMagenta, isMagentaTinted);
   const treeFactor = config.tree.scale * REDUCE;
   const reducedTree = trim(reduce(tree, treeMask, { x: 0, y: 0, w: tree.w, h: tree.h }, Math.round(tree.w * treeFactor), Math.round(tree.h * treeFactor)));
-  layers.push({
-    id: 'tree',
-    z: 20,
-    x: Math.round(config.tree.at[0] * REDUCE) + reducedTree.dx,
-    y: Math.round(config.tree.at[1] * REDUCE) + reducedTree.dy,
-    ...reducedTree.sprite,
-  });
+  const treeAt = [Math.round(config.tree.at[0] * REDUCE) + reducedTree.dx, Math.round(config.tree.at[1] * REDUCE) + reducedTree.dy];
+  if (config.tree.shade) shade(reducedTree.sprite, treeAt, config.tree.shade);
+  layers.push({ id: 'tree', z: 20, x: treeAt[0], y: treeAt[1], ...reducedTree.sprite });
 
   const sheet = await loadRgb(config.sheet.file);
-  // Things are found on the plain mask; the peeled mask (which can nibble a kite tail apart) only decides pixels.
-  const boxes = findThings(mask(sheet, isMagenta), sheet.w, sheet.h);
-  const sheetMask = mask(sheet, isMagenta, isMagentaTinted);
+  // Things are found on the plain mask; the peeled mask only decides which pixels survive.
+  const plainMask = mask(sheet, isMagenta);
+  const peeledMask = mask(sheet, isMagenta, isMagentaTinted);
+  const boxes = findThings(plainMask, sheet.w, sheet.h);
   if (boxes.length !== config.sheet.things.length) {
     throw new Error(`${config.sheet.file}: expected ${config.sheet.things.length} things, found ${boxes.length}`);
   }
@@ -395,7 +413,7 @@ async function buildStaging(name, enlarge) {
     const factor = (thing.height / box.h) * REDUCE;
     const w = Math.max(1, Math.round(box.w * factor));
     const h = Math.max(1, Math.round(box.h * factor));
-    const { sprite, dx, dy } = trim(reduce(sheet, sheetMask, box, w, h));
+    const { sprite, dx, dy } = trim(reduce(sheet, thing.peel === false ? plainMask : peeledMask, box, w, h));
     // A thing stands on its foot point, or (the lantern) hangs from its top point.
     const anchor = thing.foot ?? thing.top;
     const left = Math.round(anchor[0] * REDUCE - w / 2) + dx;
