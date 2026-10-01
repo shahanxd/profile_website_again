@@ -24,6 +24,7 @@ Milestone 1 (foundation) is done. Milestones are listed in `docs/PLAN.md`.
 2. sumud: the key art has arrived and is built at `public/showcase/still/sumud.webp` (1600x900, in `showcaseMedia.json` under `stills.sumud`). Show it in sumud's block on both splits in place of the stand-in. It is a finished picture with its own title lettering; do not pixelate or crop the lettering.
 3. Creative achievements (new, the owner's words): the Smoke House / Hyderabadi BBQ food box design is the **2026 Canva On Campus design competition winner**; the Nothing Phone (3a) community edition draft is a **global finalist**; and the owner was a **Nothing community reviewer**, "someone entrusted who has good presentation and writing skills". Mark the first two on their design cards and add all three as a short achievements list on the creative side.
 4. The owner confirmed: the two swapped design file names were read correctly; the resume stays as it is, phone number included.
+5. The owner rewrote the tech about text themselves (in `src/content/site.ts`, marked with a comment). It must stay exactly as written, including "undergrad at that thing" and the capitalised "ML"; a running build was briefed with older wording, so check it has not been reverted. Smoke House is described as "a group project" at the owner's request.
 
  The site's future domain per the resume is shahanxd.me.
 
