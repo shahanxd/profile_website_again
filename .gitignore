@@ -22,3 +22,4 @@ playwright-report/
 
 # the owner's originals; web-ready copies are built into public/showcase by scripts/build-showcase.py
 creative showcase/
+.claude/scheduled_tasks.lock
