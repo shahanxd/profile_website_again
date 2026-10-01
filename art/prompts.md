@@ -11,6 +11,6 @@ Every generation is logged here: tool, settings, prompt, where the output went, 
 | # | Tool | Settings | Output | Verdict |
 |---|---|---|---|---|
 | 1 | Canva generate-image | LANDSCAPE_16_9 | Canva asset `MAHWvHzdNQ4` (1680x944 JPG, in the owner's Canva) | Composition matches the brief. Only a 200 px thumbnail reached the agent, so pixel quality is unjudged. |
-| 2 | Weave: Nano Banana Pro | 16:9, 1K | not run | Weave run tools need a paid plan. |
-| 3 | Weave: GPT Image 2.5 | landscape_16_9, high | not run | same |
-| 4 | Weave: Nano Banana 2 | 16:9, 1K | not run | same |
+| 2 | Weave: Nano Banana Pro | 16:9, 1K | requested in `art/requests/01-key-art.md` | pending |
+| 3 | Weave: GPT Image 2.5 | landscape 16:9, high | requested | pending |
+| 4 | Weave: Nano Banana 2 | 16:9, 1K | requested | pending |
