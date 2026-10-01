@@ -19,3 +19,6 @@ playwright-report/
 
 # local tool state
 .claude/settings.local.json
+
+# the owner's originals; web-ready copies are built into public/showcase by scripts/build-showcase.py
+creative showcase/

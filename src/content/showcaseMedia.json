@@ -1,0 +1,184 @@
+{
+  "designs": {
+    "xai-poster": {
+      "pages": [
+        {
+          "src": "/showcase/design/xai-poster-1.webp",
+          "width": 1100,
+          "height": 1557
+        }
+      ]
+    },
+    "nothing-3a": {
+      "pages": [
+        {
+          "src": "/showcase/design/nothing-3a-1.webp",
+          "width": 1600,
+          "height": 900
+        },
+        {
+          "src": "/showcase/design/nothing-3a-2.webp",
+          "width": 1600,
+          "height": 900
+        },
+        {
+          "src": "/showcase/design/nothing-3a-3.webp",
+          "width": 1600,
+          "height": 900
+        },
+        {
+          "src": "/showcase/design/nothing-3a-4.webp",
+          "width": 1600,
+          "height": 900
+        },
+        {
+          "src": "/showcase/design/nothing-3a-5.webp",
+          "width": 1600,
+          "height": 900
+        },
+        {
+          "src": "/showcase/design/nothing-3a-6.webp",
+          "width": 1600,
+          "height": 900
+        },
+        {
+          "src": "/showcase/design/nothing-3a-7.webp",
+          "width": 1600,
+          "height": 900
+        }
+      ]
+    },
+    "smoke-house": {
+      "pages": [
+        {
+          "src": "/showcase/design/smoke-house-1.webp",
+          "width": 1600,
+          "height": 900
+        },
+        {
+          "src": "/showcase/design/smoke-house-2.webp",
+          "width": 1600,
+          "height": 900
+        },
+        {
+          "src": "/showcase/design/smoke-house-3.webp",
+          "width": 1600,
+          "height": 900
+        },
+        {
+          "src": "/showcase/design/smoke-house-4.webp",
+          "width": 1600,
+          "height": 900
+        },
+        {
+          "src": "/showcase/design/smoke-house-5.webp",
+          "width": 1600,
+          "height": 900
+        },
+        {
+          "src": "/showcase/design/smoke-house-6.webp",
+          "width": 1600,
+          "height": 900
+        },
+        {
+          "src": "/showcase/design/smoke-house-7.webp",
+          "width": 1600,
+          "height": 900
+        },
+        {
+          "src": "/showcase/design/smoke-house-8.webp",
+          "width": 1600,
+          "height": 900
+        }
+      ]
+    }
+  },
+  "photos": {
+    "burns-and-melts": {
+      "full": {
+        "src": "/showcase/photo/burns-and-melts.webp",
+        "width": 1170,
+        "height": 1170
+      },
+      "thumb": {
+        "src": "/showcase/photo/burns-and-melts-thumb.webp",
+        "width": 600,
+        "height": 600
+      }
+    },
+    "butter-aint-flying": {
+      "full": {
+        "src": "/showcase/photo/butter-aint-flying.webp",
+        "width": 1170,
+        "height": 1170
+      },
+      "thumb": {
+        "src": "/showcase/photo/butter-aint-flying-thumb.webp",
+        "width": 600,
+        "height": 600
+      }
+    },
+    "blue-clue": {
+      "full": {
+        "src": "/showcase/photo/blue-clue.webp",
+        "width": 1170,
+        "height": 1170
+      },
+      "thumb": {
+        "src": "/showcase/photo/blue-clue-thumb.webp",
+        "width": 600,
+        "height": 600
+      }
+    },
+    "sip": {
+      "full": {
+        "src": "/showcase/photo/sip.webp",
+        "width": 1170,
+        "height": 1170
+      },
+      "thumb": {
+        "src": "/showcase/photo/sip-thumb.webp",
+        "width": 600,
+        "height": 600
+      }
+    }
+  },
+  "videos": {
+    "showreel": {
+      "src": "/showcase/video/showreel.mp4",
+      "poster": {
+        "src": "/showcase/video/showreel-poster.webp",
+        "width": 1280,
+        "height": 720
+      },
+      "width": 1280,
+      "height": 720,
+      "seconds": 62.0,
+      "megabytes": 13.4
+    },
+    "process": {
+      "src": "/showcase/video/process.mp4",
+      "poster": {
+        "src": "/showcase/video/process-poster.webp",
+        "width": 1280,
+        "height": 720
+      },
+      "width": 1280,
+      "height": 720,
+      "seconds": 86.2,
+      "megabytes": 8.6
+    },
+    "udaipur": {
+      "src": "/showcase/video/udaipur.mp4",
+      "poster": {
+        "src": "/showcase/video/udaipur-poster.webp",
+        "width": 1280,
+        "height": 720
+      },
+      "width": 1280,
+      "height": 720,
+      "seconds": 7.6,
+      "megabytes": 1.8
+    }
+  }
+}
