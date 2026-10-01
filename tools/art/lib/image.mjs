@@ -10,9 +10,7 @@ import sharp from 'sharp';
 export const CLEAR = -1;
 
 export async function loadRaster(file) {
-  // toColourspace: a greyscale or CMYK file comes out as RGBA like any other
-  const { data, info } = await sharp(file).toColourspace('srgb').ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  if (info.channels !== 4) throw new Error(`${file}: cannot read it as RGBA (${info.channels} channels)`);
+  const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   return { w: info.width, h: info.height, data: new Uint8Array(data.buffer, data.byteOffset, data.length) };
 }
 

@@ -23,6 +23,7 @@ Generated "pixel art" is not pixel art. It arrives 1000 to 2000 px wide, its app
 ```bash
 # What is in this raw image? Key colour, objects, pixel grid, and a size to try.
 node tools/art/pixelize.mjs inspect art/raw/parrot/take-03.png
+node tools/art/pixelize.mjs inspect "art/raw/prop sheet 2.png" --key "#0000ff"   # quote paths with spaces
 
 # Build everything in the config into art/sprites and update sprites.json.
 node tools/art/pixelize.mjs build
@@ -44,7 +45,17 @@ node tools/art/pixelize.mjs palette --export hex,gpl,act      # art/palette.hex 
 node tools/art/pixelize.mjs palette --fit art/raw/keyart/creative-01.png
 ```
 
-`build` and `check` exit with status 1 on any error, so they can gate a commit.
+`build` and `check` exit with status 1 on any error, so they can gate a commit. `build` writes nothing unless every asset came through: one error, or one warning under `--strict`, and the sprite folder is left as it was.
+
+## Before generating
+
+What to ask the image tool for, so the clean-up has something it can work with.
+
+- **Background.** Flat magenta `#ff00ff` for almost everything: no palette colour is near it. Pure blue `#0000ff` for pink and purple subjects (the blossom canopy, petals), because generated pinks wander towards magenta. Not blue for anything navy: `blueviolet` and `indigo`, the character's sweater, sit close to a blue key and `build` warns about it. Never green (the parrot, the lawn), white, grey or black (parchment, marble, outlines). A real transparent PNG is as good as a key colour and is detected by itself.
+- **Say in the prompt:** one flat solid background colour, no shadow, no ground, no glow, no gradient, no text; the whole subject inside the frame with a margin around it; hard pixel edges.
+- **Resolution.** At least 12 raw pixels per art pixel, 16 to 24 if the tool allows. A 50-pixel-wide character should fill most of a 1024 px image. Below about 7 the result needs repainting. Take PNG over JPEG or WebP when offered.
+- **One object per image,** or a sheet with clear gaps: objects closer than 3% of the image's longer side are taken for one object.
+- **Choosing `size`.** `size` is not the size you want; it is the number of art pixels the generated subject really has, counted over its own tight box. Run `inspect` and use what it suggests when both grid lines report a strength of 0.6 or more. If that is not the size the scene needs, regenerate (ask for "a 52 by 50 pixel sprite"): forcing another `size` resamples the art into mush, and `build` warns when it can tell.
 
 ## The sprite contract
 
@@ -61,24 +72,24 @@ node tools/art/pixelize.mjs palette --fit art/raw/keyart/creative-01.png
   `anchor` is the spot placed at the layer's position, and `points` are named spots other things attach to. Both are in pixels within one frame, from the top-left, and may sit on the frame's edge: `[0, h]` is the bottom-left corner, the usual anchor for something standing on the ground. `emissive` marks things that glow. `source` is `greybox` (placeholder), `generated` (made by this tool) or `override` (a hand repaint).
 - A file with no line of its own uses the line of its id (`cat.tech.png` falls back to `"cat"`).
 
-`build` only ever changes the lines of the sprites it builds. When a new sprite makes an old file unreachable (a shared file once both stagings have their own, or staging files nothing in the config asks for once a shared file arrives), `build` removes that file and says so. The old line stays, as a copy of the new one, because `scripts/make-greybox.mjs` redraws every name whose line does not say `generated` or `override`.
+`build` only changes the lines of the ids it builds. When a new sprite makes an old file of the same id unreachable (a shared file once both stagings have their own, or staging files nothing in the config asks for once a shared file arrives), `build` removes that file and says so. The old line stays, as a copy of the new one, because `scripts/make-greybox.mjs` redraws every name whose line does not say `generated` or `override`. A file that has no line in `sprites.json` was put there by hand; `build` stops with an error rather than remove it.
 
 ## The pipeline
 
 Each asset in the config goes through these steps.
 
 1. **Load** the raw image.
-2. **Key.** Find the flat background colour from the image border (or take it from the config) and mark everything else as subject. A shadow on the key, which is the key colour darkened, counts as key. Pixels on the subject's rim are a blend of both colours; they take the colour of the pixel just inside them (despill).
+2. **Key.** Find the flat background colour from the image border (or take it from the config) and mark everything else as subject. `"auto"` only takes a colour that fills three quarters of the border, so a plate with a flat sky is not mistaken for a sprite on a background; when it finds none it warns and uses the whole image. A shadow on the key, which is the key colour darkened, counts as key. Pixels on the subject's rim are a blend of both colours; they take the colour of the pixel just inside them (despill).
 3. **Split.** For a sheet of several objects, take the asset's `cell`, or its numbered `component`.
-4. **Grid.** The box around the subject becomes the sprite, and `size` says how many art pixels it holds. The lines between them are then moved onto the art's own pixel edges (`"grid": "snap"`), because generated art drifts: its pixels are not all the same size and an even grid slides off them. If the art clearly has a different number of pixels than `size` asks for (more than 15% apart), `build` warns.
+4. **Grid.** The box around the subject becomes the sprite, and `size` says how many art pixels it holds. The lines between them are then moved onto the art's own pixel edges (`"grid": "snap"`), because generated art drifts: its pixels are not all the same size and an even grid slides off them. If the art's own grid is clear and gives a different count than `size`, `build` warns. The grid is measured to about 3%, so one pixel out in ten is caught and one in fifty is not.
 5. **Downscale.** Each art pixel takes the most common palette colour in the middle 60% of its cell (`"mode"`). The middle is where a fake pixel is flat, and a vote cannot invent an in-between colour the way an average does.
 6. **Quantise** to the nearest colour in OKLab, restricted to the asset's `ramps`, so a parrot cannot borrow grass green.
-7. **Alpha.** A cell is opaque if at least half of it is subject.
+7. **Alpha.** A cell is opaque if at least half of it is subject (`cover`).
 8. **Despeckle** (off by default). Lone pixels take the majority of their neighbours.
 9. **Outline** (off by default). `ink` or `selout`.
 10. **Trim** to the art, moving the anchor and points along.
 11. **Rig.** Build animation frames from the one clean frame by small pixel edits.
-12. **Grade.** A sprite shared by both stagings that does not glow also gets a dusk version through the palette's `duskSwap`, written as `<id>.creative.png` and `<id>.tech.png`. If the swap changes nothing, one `<id>.png` is written.
+12. **Grade.** A sprite shared by both stagings that does not glow also gets a dusk version: every pixel takes one step through the palette's `duskSwap`. The pair is written as `<id>.creative.png` and `<id>.tech.png`. If the swap changes nothing, one `<id>.png` is written. A sprite with a `staging`, or marked `emissive`, is written as it is.
 13. **Write** the PNGs and update `sprites.json`.
 14. **Self-check.** Every file is read back and held to the contract.
 
@@ -115,24 +126,41 @@ Each asset in the config goes through these steps.
 | `staging` | `"creative"`, `"tech"`, or `null` for both. An id may appear once with `null`, or once per staging. | `null` |
 | `src` | The raw image. Not needed when a repaint exists in `overrides/`. | |
 | `size` | `[w, h]` of the finished sprite in art pixels: how many pixels the subject's own box holds. `inspect` suggests it. | required |
-| `key` | `"auto"` (from the border), `"#rrggbb"`, `"alpha"` (the image is already transparent) or `"none"` (a full plate, no background). | `"auto"` |
+| `key` | `"auto"` (from the border; a transparent background is found the same way), `"#rrggbb"`, `"alpha"` (the image is already transparent) or `"none"` (a full plate, no background). | `"auto"` |
 | `tolerance` | How far from the key a pixel may be and still count as key, in OKLab. Raise it if a halo survives, lower it if the subject is eaten. | `0.1` |
+| `shadow` | How dark a shadow on the key may get and still count as key: `1` allows none, lower allows darker. Try `0.5` when a drop shadow comes out as a dark smear. | `0.75` |
 | `cell` | `[x0, y0, x1, y1]` as fractions of the image: the part of a sheet this asset is in. `inspect` prints one per object. | whole image |
 | `component` | Instead of `cell`: the object's number on the sheet, in reading order from 0. | |
-| `grid` | `"snap"` follows the art's own pixel edges, `"even"` spaces the lines evenly. | `"snap"` |
-| `downscale` | `"mode"`, `"center"` (the one pixel in the middle of each cell) or `"box"` (the cell's average; for smooth plates). | `"mode"` |
+| `grid` | `"snap"` follows the art's own pixel edges. `"even"` spaces the lines evenly and does not look at the art's grid at all. | `"snap"`; `"even"` with `dither` |
+| `downscale` | `"mode"`, `"center"` (the one pixel in the middle of each cell) or `"box"` (the cell's average; for smooth plates). | `"mode"`; `"box"` with `dither` |
+| `cover` | The share of a cell that must be subject for its pixel to be opaque. Lower it (`0.25`) to keep lines the art drew thinner than its own pixels, such as a kite string. | `0.5` |
 | `ramps` | The palette ramps this asset may use. | all colours |
-| `dither` | `"bayer4"` for skies and plates, with `"box"` or `"center"`. Never for sprites. | `"none"` |
+| `dither` | `"bayer4"` for a smooth sky or plate that was not drawn as pixel art. Never for sprites. | `"none"` |
 | `despeckle` | `1` fixes lone pixels that are only a shade off their surroundings. `2` fixes every lone pixel, and with it eyes and glints. | `0` |
 | `outline` | `"ink"` turns the sprite's edge pixels ink. `"selout"` turns each into the darkest shade of its own ramp; an edge that is already ink takes the shade of the colour inside it. | `"none"` |
 | `anchor`, `points` | In art pixels within `size`. | `[0, 0]`, none |
-| `emissive` | The sprite glows: no dusk version is baked. | `false` |
+| `emissive` | The sprite glows. No dusk version is written here. For a shared sprite the atlas packer (`scripts/pack-atlas.mjs`) then makes one that holds the palette's `emissive` colours and steps the rest down, so a lantern's flame stays lit while its brass darkens. A glow painted in any other colour will dim. | `false` |
 | `pos` | Where `compose` puts the anchor, in camera pixels (320 x 180). Preview only. | not drawn |
 | `frames` | The animation frames, each the clean frame plus `ops`. Without it the sprite is one frame. | one frame |
 
+A field the tool does not know, or one of the wrong shape, is an error: a misspelt `ramps` would otherwise quietly allow every colour.
+
+### Warnings
+
+A warning means the sprite was built but probably not as meant. With `--strict` each one is an error.
+
+| Warning | What to do |
+|---|---|
+| only N% of the border is one colour | `"auto"` found no background. Set `"key": "none"` for a plate, or give the key as `"#rrggbb"`. |
+| the key is close to (colours) | The background is too near colours the asset uses; those parts get holes. Regenerate on another key, or list fewer `ramps`. |
+| the art's own pixels are N px wide, which makes it M wide | `size` disagrees with the art. Use the size `inspect` suggests. It also appears when a shadow or a stray object has widened the subject's box. |
+| the art touches the (side) of its "cell" | The cell cuts through the object or includes a piece of its neighbour. Use the cell `inspect` prints. |
+| trimmed from A to B | Rows or columns at the edge came out empty, often a thin detail that was lost (see `cover`). |
+| (override) is not used | A repaint has no asset of that name in the config. |
+
 ### Sheets
 
-One image with several objects on it feeds several assets. Run `inspect` on it: it numbers the objects in reading order and prints a `cell` for each. Give every asset the same `src` and its own `cell` (or `component`), `size` and `ramps`. Parts closer together than 3% of the image's longer side count as one object, so steam stays with its cup; objects need a wider gap than that between them.
+One image with several objects on it feeds several assets. Run `inspect` on it: it numbers the objects in reading order and prints a `cell` for each. Give every asset the same `src` and its own `cell` (or `component`), `size` and `ramps`. Parts closer together than 3% of the image's longer side count as one object, so steam stays with its cup; objects need a wider gap than that between them. Two objects that nearly touch are counted as one and shift the numbering, so give those a `cell` each.
 
 ### Frame ops
 
@@ -150,7 +178,7 @@ Coordinates are art pixels in the untrimmed frame. A frame with no ops is the cl
 
 ### Overrides
 
-Paint over a sprite at art resolution, with the exported palette loaded, and save it as `overrides/<id>.png` (or `overrides/<id>.creative.png` for an asset with a staging). It replaces steps 1 to 9; the rest of the pipeline (frames, trim, dusk version) still runs, and the sprite is recorded with `"source": "override"`. The image must be the asset's `size`. A pixel that is not exactly a palette colour is snapped to the nearest allowed one, with a warning.
+Paint over a sprite at art resolution, with the exported palette loaded, and save it as `overrides/<id>.png` (or `overrides/<id>.creative.png` for an asset with a staging). It replaces steps 1 to 9; the rest of the pipeline (frames, trim, dusk version) still runs, and the sprite is recorded with `"source": "override"`. The image must be the asset's `size`. A pixel that is not exactly a palette colour is snapped to the nearest allowed one, with a warning. A repaint only takes effect through an asset of the same name in the config; `build` warns about one that has none.
 
 ### Pixel maps
 
@@ -170,7 +198,7 @@ Sprites too small to be worth generating are drawn in the config. A pixel map is
 
 `.` is transparent. Use `"rows"` instead of `"frames"` for a single frame. A pixel map takes `anchor`, `points`, `emissive` and `pos` like an asset, and is written exactly as drawn.
 
-The shipped config has `petal.creative` (three shapes, one per frame), `leaf.tech`, `flame`, `glint.creative`, `glint.tech`, `firefly.tech` and `font`. `font` is a 3x5 pixel font, one frame per character, in the order `abcdefghijklmnopqrstuvwxyz0123456789`. The swatch sheet is labelled with it.
+The shipped config has `petal.creative` (three shapes, one per frame), `leaf.tech`, `flame`, `glint.creative`, `glint.tech`, `firefly.tech` and `font`. `font` is a 3x5 pixel font, one frame per character, in the order `abcdefghijklmnopqrstuvwxyz0123456789`. It is parchment, which is not a glow colour, so it is graded like any shared sprite: `font.creative.png` in parchment and `font.tech.png` in moonlight. The swatch sheet is labelled with it.
 
 ## Adding a generated sprite
 

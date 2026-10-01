@@ -8,7 +8,7 @@ export const exists = (file) => access(file).then(() => true, () => false);
 
 const whole = Number.isInteger;
 const list = (n, test) => (v) => Array.isArray(v) && v.length === n && v.every(test);
-const oneOf = (...choices) => [(v) => choices.includes(v), choices.map((c) => JSON.stringify(c)).join(' or ')];
+const oneOf = (...choices) => [(v) => choices.includes(v), `one of ${choices.map((c) => JSON.stringify(c)).join(", ")}`];
 const text = [(v) => typeof v === 'string' && v !== '', 'text'];
 const pair = [list(2, whole), '[x, y] in whole pixels'];
 const share = [(v) => v > 0 && v <= 1, 'a number above 0, up to 1'];

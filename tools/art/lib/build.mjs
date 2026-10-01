@@ -28,9 +28,14 @@ function sidesTouched({ w, h, mask }, run) {
 async function cleanFrame(asset, { palette, rawCache }, report) {
   const allowed = allowedColours(palette, asset.ramps);
   const keyOptions = { tolerance: asset.tolerance, shadow: asset.shadow };
+  // Dither is for smooth plates. Those have no fake pixels to vote on or to
+  // follow (the only grid in them is JPEG's 8 px blocks), so with dither the
+  // defaults become an average over an even grid.
   const dither = asset.dither ?? 'none';
-  let how = asset.downscale ?? 'mode';
-  if (dither !== 'none' && how === 'mode') {
+  const smooth = dither !== 'none';
+  const snap = (asset.grid ?? (smooth ? 'even' : 'snap')) === 'snap';
+  let how = asset.downscale ?? (smooth ? 'box' : 'mode');
+  if (smooth && how === 'mode') {
     report.warn('dither needs a blended colour to work from; using "downscale": "box"');
     how = 'box';
   }
@@ -45,7 +50,7 @@ async function cleanFrame(asset, { palette, rawCache }, report) {
   const { img, key, unsure, mask } = rawCache.get(cacheKey);
   if (unsure) report.warn(`${unsure}, so no key was taken and the whole image is used. Set "key": "none" for a plate, or "key": "#rrggbb" for a background`);
   const eaten = coloursNearKey(key, palette, allowed, keyOptions);
-  if (eaten.length) report.warn(`the key ${describeKey(key)} is close to ${eaten.join(', ')}, which this asset may use: parts in those colours will be cut out. Generate on a key far from the subject's colours`);
+  if (eaten.length) report.warn(`the key ${describeKey(key)} is close to ${eaten.join(', ')}, which this asset may use: parts in those colours may be cut out. Generate on a key far from the subject's colours`);
 
   // Step 3: the part of the image this asset comes from.
   let rect = whole(img);
@@ -81,13 +86,15 @@ async function cleanFrame(asset, { palette, rawCache }, report) {
     const length = profile.length + 1;
     const count = asset.size[axis];
     const side = axis ? 'tall' : 'wide';
-    const found = detectPeriod(profile);
-    const fits = found && found.strength >= GRID_SURE ? Math.round(length / found.period) : count;
-    if (fits !== count) {
-      report.warn(`the art's own pixels are ${found.period} px ${side}, which makes it ${fits} ${side}; "size" asks for ${count} (${scale[axis].toFixed(1)} px each)`);
+    const found = snap && detectPeriod(profile);
+    // The period is good to about 3%, so a count is only doubted beyond that:
+    // one off in ten is caught, one off in fifty is not.
+    const fits = found && found.strength >= GRID_SURE ? length / found.period : count;
+    if (Math.abs(fits - count) >= 0.5 + 0.03 * count) {
+      report.warn(`the art's own pixels are ${found.period} px ${side}, which makes it ${Math.round(fits)} ${side}; "size" asks for ${count} (${scale[axis].toFixed(1)} px each)`);
     }
     // Under 4 px a cell there are no edges worth following.
-    const follow = (asset.grid ?? 'snap') === 'snap' && scale[axis] >= 4;
+    const follow = snap && scale[axis] >= 4;
     return (follow ? snapLines(profile, count) : evenLines(length, count)).map((v) => v + (axis ? box.y0 : box.x0));
   });
 

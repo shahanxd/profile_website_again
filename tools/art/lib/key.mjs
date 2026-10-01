@@ -8,7 +8,7 @@ export const OBJECT_GAP = 0.03;
 // "auto" takes the border's main colour for a key only when it fills this
 // share of the border. A plate with a flat sky reaches half; a sprite on a
 // key colour is near 1.
-export const KEY_SURE = 0.75;
+const KEY_SURE = 0.75;
 // An asset's "tolerance" and "shadow", with their defaults.
 const keySettings = (options) => ({ tolerance: options?.tolerance ?? 0.1, shadow: options?.shadow ?? 0.75 });
 
@@ -64,10 +64,10 @@ export function coloursNearKey(key, palette, allowed, options) {
 /**
  * What the background is, judged from the image border: { alpha: true } for
  * a transparent one, else { rgb, coverage }, the border's main colour and the
- * share of the border it fills. Whether that is a key is the caller's call
+ * share of the border it fills. Whether that is a key is resolveKey's call
  * (see KEY_SURE).
  */
-export function findKey(img, keyOptions) {
+function findKey(img, keyOptions) {
   const border = borderPixels(img);
   const bins = new Map(); // border colours at 5 bits a channel: [count, sum r, sum g, sum b]
   let clear = 0;

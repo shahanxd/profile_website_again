@@ -37,7 +37,7 @@ async function inspect(file, opts) {
   say(`  key      ${describeKey(key)}${key?.coverage ? `, ${Math.round(key.coverage * 100)}% of the border` : ''}${unsure ? `: ${unsure}` : ''}`);
   const palette = await loadPalette((await loadConfig(opts.config)).palette);
   const eaten = coloursNearKey(key, palette, allowedColours(palette));
-  if (eaten.length) say(`           close to palette colours ${eaten.join(', ')}: art in those colours will be cut out`);
+  if (eaten.length) say(`           close to palette colours ${eaten.join(', ')}: art in those colours may be cut out`);
 
   const objects = key ? components(mask, img.w, img.h) : [{ x0: 0, y0: 0, x1: img.w, y1: img.h }];
   if (!objects.length) return say('  nothing but key colour');
