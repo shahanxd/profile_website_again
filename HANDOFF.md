@@ -56,7 +56,8 @@ Node 22.12 or newer is required (this machine has 24.19).
   - Why: Weave is linked, but its run tools answer "only available on a paid Weave plan", so the agent cannot run it on the free plan. Costs it quoted: Nano Banana Pro 11 credits, GPT Image 2.5 8, Nano Banana 2 6, Nano Banana / NB2 Lite / Flux Kontext 3.
   - Canva's generator works from the agent but only returns a 200 px thumbnail and has no size or transparency controls; not used.
   - The owner said not to cut quality to save credits and will add credits when needed.
-- **Waiting on:** `art/requests/01-key-art.md` (creative key art on three models). Next is the dusk key art, then the vertical slice (owner's character and the parrot).
+- **Key-art bake-off result:** GPT Image 2.5 won over Nano Banana 2 (see `art/prompts.md`). The image holds up when downscaled straight to the site grid, so the plan is now to **cut the approved stills into layers** (plate, tree, character, parrot, cat, tray, table and tablet) instead of generating every element separately. This likely changes the world size from 400x200 to about 352x198 (a 16:9 still with parallax bleed around a 320x180 camera); adjust `src/hero/scene/framing.ts` when the art lands.
+- **Waiting on:** `art/requests/02-key-art-refined-and-dusk.md` (refined creative still with open sky top right and a viewer-facing tablet, then the dusk still).
 - Prompts used so far are logged in `art/prompts.md`.
 
 ## Open questions for the owner

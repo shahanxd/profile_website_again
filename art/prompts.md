@@ -11,6 +11,12 @@ Every generation is logged here: tool, settings, prompt, where the output went, 
 | # | Tool | Settings | Output | Verdict |
 |---|---|---|---|---|
 | 1 | Canva generate-image | LANDSCAPE_16_9 | Canva asset `MAHWvHzdNQ4` (1680x944 JPG, in the owner's Canva) | Composition matches the brief. Only a 200 px thumbnail reached the agent, so pixel quality is unjudged. |
-| 2 | Weave: Nano Banana Pro | 16:9, 1K | requested in `art/requests/01-key-art.md` | pending |
-| 3 | Weave: GPT Image 2.5 | landscape 16:9, high | requested | pending |
-| 4 | Weave: Nano Banana 2 | 16:9, 1K | requested | pending |
+| 2 | Weave: Nano Banana Pro | 16:9, 1K | not run by the owner | skipped |
+| 3 | Weave: GPT Image 2.5 | landscape 16:9, high | `art/raw/keyart/creative-gpt.png` (1088x608) | **Winner.** Rich, detailed pixel art with a dithered sunset, close to the reference look. Reads well downscaled to 320x180. Needs open sky top right for the headline and a viewer-facing tablet. |
+| 4 | Weave: Nano Banana 2 | 16:9, 1K | `art/raw/keyart/creative-nb2.png` (1376x768) | Cleaner and flatter, more cartoon illustration than pixel art; man reclining, not cross-legged. Not chosen. |
+
+## Key art, refined creative and dusk
+
+Prompts and settings are in `art/requests/02-key-art-refined-and-dusk.md` (GPT Image 2.5, editing from the previous image). Outputs: `creative-v2.png`, `tech-v1.png`. Status: requested.
+
+Note: the owner's likeness came out right from the text description alone, so the photo has not been uploaded anywhere.
