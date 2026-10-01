@@ -59,6 +59,15 @@
   font-size: var(--t-small);
 }
 
+/* a word about a tool ("main camera"), after it, in the label face */
+.toolkit-note {
+  margin-left: calc(var(--px) * 2);
+  color: var(--accent);
+  font-family: var(--font-pixel);
+  font-size: var(--t-caption);
+  letter-spacing: 0.03em;
+}
+
 /* --- Glyph ---------------------------------------------------------------------
  * A drawing written out in letters (Glyph.tsx), one art pixel to a page pixel. */
 .glyph {
@@ -84,6 +93,35 @@
   margin: var(--s-4) 0 0;
   padding: 0;
   list-style: none;
+}
+
+/* Three or four cards keep to rows that come out even: all in one row where there is room, else four as two and two, else one to a row. */
+@media (min-width: 560px) {
+  .contact-links[data-count='4'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 820px) {
+  .contact-links[data-count='3'] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .contact-links[data-count='4'] {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--s-3);
+  }
+
+  /* four to a row: the label a size down, so the longest ("linkedin") and its arrow keep one line */
+  .contact-links[data-count='4'] .contact-label {
+    font-size: 34px;
+  }
+
+  .contact-links[data-count='4'] .contact-link {
+    padding: calc(var(--px) * 6);
+  }
 }
 
 .contact-links > li,

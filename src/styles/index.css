@@ -162,7 +162,7 @@
     top: 12px;
   }
 
-  /* Copy the owner has not written or approved yet, outlined in development only (see src/components/Text.tsx). */
+  /* Copy the owner has not written or approved yet: outlined on the development server, and only when the address asks with ?drafts=1 (see showDrafts in src/content/visible.ts). */
   [data-draft] {
     text-decoration: underline dotted color-mix(in srgb, var(--accent) 60%, transparent);
     text-decoration-thickness: 1px;

@@ -1,4 +1,5 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
+import { outbound } from './outbound';
 
 type Tone = 'accent' | 'ink' | 'paper';
 
@@ -17,7 +18,7 @@ export function PixelButton({ tone = 'accent', className = '', children, ...rest
   const face = <span className="px-btn-face">{children}</span>;
   if (rest.href !== undefined) {
     return (
-      <a {...rest} {...shared}>
+      <a {...rest} {...outbound(rest.href, rest.rel)} {...shared}>
         {face}
       </a>
     );
@@ -42,7 +43,7 @@ interface PixelLinkProps extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, '
  */
 export function PixelLink({ inline, className = '', children, ...rest }: PixelLinkProps) {
   return (
-    <a {...rest} className={`px-link ${className}`} data-inline={inline ? '' : undefined}>
+    <a {...rest} {...outbound(rest.href, rest.rel)} className={`px-link ${className}`} data-inline={inline ? '' : undefined}>
       {children}
     </a>
   );

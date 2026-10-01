@@ -122,14 +122,59 @@ function Showcase({ project, index, count }: { project: Project; index: number; 
 }
 
 /**
+ * How the cards between two plain ones share their rows, so that no row ends
+ * with an empty place: for each card, how many of them stand in its row when
+ * rows hold up to three, and when they hold up to two. Short rows come
+ * first, so the cards with the most to say (the first listed) get the room.
+ */
+function rowsOf(count: number): { three: number; two: number }[] {
+  const fill = (most: number): number[] => {
+    const rows: number[] = [];
+    let left = count;
+    // as many short rows as it takes for the rest to fill whole rows
+    while (left % most !== 0 && left > 0) {
+      const size = Math.min(left, most - 1);
+      rows.push(size);
+      left -= size;
+    }
+    for (; left > 0; left -= most) rows.push(most);
+    return rows.flatMap((size) => Array<number>(size).fill(size));
+  };
+  const [three, two] = [fill(3), fill(2)];
+  return three.map((size, i) => ({ three: size, two: two[i] }));
+}
+
+interface CardProps {
+  project: Project;
+  index: number;
+  count: number;
+  order: number;
+  /** How many cards stand in this one's row, at each width of the grid. Not given to a plain card, which has the whole row. */
+  row?: { three: number; two: number };
+}
+
+/**
  * One of the rest. A plain-toned project (a serious subject) gets the whole
  * row and a straight frame: the same card as the others, with nothing eaten,
- * raised or resolving around it.
+ * raised or resolving around it. Where it has a picture of its own (sumud's
+ * key art), the picture stands beside the words, whole and unframed.
  */
-function Card({ project, index, count, order }: { project: Project; index: number; count: number; order: number }) {
+function Card({ project, index, count, order, row }: CardProps) {
   const plain = project.tone === 'plain';
+  const picture = plain ? project.image : undefined;
   const card = (
     <PixelEdge as="article" shadow={!plain} lift={!plain} plain={plain} cut={index + 2} bodyClassName="tech-card">
+      {picture && (
+        <img
+          className="tech-card-picture"
+          src={picture.src}
+          alt={picture.alt}
+          width={picture.width}
+          height={picture.height}
+          loading="lazy"
+          decoding="async"
+        />
+      )}
       <div className="tech-card-head">
         <p className="tech-num">{place(index, count)}</p>
         <h3>{project.name}</h3>
@@ -147,7 +192,11 @@ function Card({ project, index, count, order }: { project: Project; index: numbe
       </div>
     </PixelEdge>
   );
-  return <li data-wide={plain ? '' : undefined}>{plain ? card : <Reveal order={order}>{card}</Reveal>}</li>;
+  return (
+    <li data-wide={plain ? '' : undefined} data-pictured={picture ? '' : undefined} data-row3={row?.three} data-row2={row?.two}>
+      {plain ? card : <Reveal order={order}>{card}</Reveal>}
+    </li>
+  );
 }
 
 /** The owner at work, leaning on the bolster at the edge of the carpet: company for the heading. */
@@ -171,6 +220,19 @@ export function TechWork() {
   const rest = projects.filter((project) => project.size === 'grid');
   // the cards that resolve in do so as a row: each is told how many came before it
   const before = (index: number) => rest.slice(0, index).filter((project) => project.tone !== 'plain').length;
+  // a plain card takes a whole row; the cards of each run between them share out their rows
+  const rows: ({ three: number; two: number } | undefined)[] = [];
+  for (let i = 0; i < rest.length; ) {
+    let end = i;
+    while (end < rest.length && rest[end].tone !== 'plain') end += 1;
+    if (end === i) {
+      rows.push(undefined);
+      i += 1;
+    } else {
+      rows.push(...rowsOf(end - i));
+      i = end;
+    }
+  }
 
   return (
     <Section id="work" index={2} label={techLabel('work')} heading={work.heading} mark={work.mark} ornament={<AtWork />}>
@@ -183,7 +245,7 @@ export function TechWork() {
       <p className="tag tech-rule">the rest</p>
       <ul className="tech-cards" aria-label="more projects">
         {rest.map((project, i) => (
-          <Card key={project.id} project={project} index={features.length + i} count={projects.length} order={before(i)} />
+          <Card key={project.id} project={project} index={features.length + i} count={projects.length} order={before(i)} row={rows[i]} />
         ))}
       </ul>
     </Section>

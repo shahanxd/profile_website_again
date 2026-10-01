@@ -7,9 +7,10 @@ import { useOnScreen } from '../../motion/watch';
 import { Toolkit } from '../shared/Toolkit';
 
 /**
- * Why the owner does this: the statement on a note, with the parrot perched
- * on its corner, the coffee beside it on the corner of the carpet, and the
- * toolkit as one row.
+ * Why the owner does this: the note, with the parrot perched on its corner,
+ * the coffee beside it on the corner of the carpet, and the toolkit as one
+ * row. The note's first paragraph is its statement, set large; the rest
+ * follow in the reading size.
  */
 export function CreativeAbout() {
   const { paragraphs, toolkit } = site.creative.about;

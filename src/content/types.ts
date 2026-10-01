@@ -10,8 +10,8 @@ import type { sectionArt } from './sectionArt';
  *  - facts and pieces carry `confirmed: false` until the owner confirms or
  *    supplies them.
  *
- * Both render the same in production. In development they are outlined
- * (see Text.tsx and devMark in visible.ts).
+ * Both render the same in production. In development they are outlined when
+ * the address carries ?drafts=1 (see showDrafts in visible.ts).
  */
 export type Copy = string | { draft: string };
 
@@ -42,7 +42,7 @@ export interface LinkItem {
   href: string;
 }
 
-/** A number or fact shown as evidence. Unconfirmed ones are old or unverified; give them an asOf so they do not pose as current (the band says it once for all its numbers). */
+/** A number or fact shown as evidence. `asOf` says when it was counted ("now", "early 2025"); the band says it once for all its numbers. Unconfirmed ones are old or unverified: give them an asOf so they do not pose as current. */
 export interface Result {
   value: string;
   label: string;
@@ -65,7 +65,7 @@ export interface Project {
   links: LinkItem[];
   /** The stand-in picture, shown until `image` is supplied. */
   thumb: ThumbName;
-  /** A real screenshot, diagram or capture. */
+  /** A real screenshot, diagram or capture: a showcase shows it in place of its illustration, and a card that has the whole row (a plain one) shows it beside its words. */
   image?: Picture;
   /** Said under a showcase's picture. While that picture is an illustration and not a capture, the caption says so. */
   caption?: Copy;
@@ -74,25 +74,38 @@ export interface Project {
 export interface Achievement {
   title: Copy;
   detail?: Copy;
-  /** When it happened. Leave it out for a line that is still to come: it says "not yet". */
+  /** When it happened: a year, a span ("2025 to 2026") or "2026, ongoing". Leave it out where it is not known. */
   year?: string;
   href?: string;
-  /** Its lamp is lit only once this is true (and there is a year): an unconfirmed line never shines as a result. */
+  /** Its lamp is lit only once this is true: an unconfirmed line never shines as a result. Unconfirmed and without a year, it is a line still to come and says "not yet". */
   confirmed: boolean;
+}
+
+/** A self-hosted video: the file, the still shown until it is played, and how long it runs. */
+export interface VideoFile {
+  src: string;
+  poster: Picture;
+  width: number;
+  height: number;
+  seconds: number;
 }
 
 export interface ShowcaseItem {
   id: string;
-  kind: 'video' | 'design' | 'game';
+  kind: 'video' | 'design' | 'photo' | 'game';
   title: Copy;
+  /** One line about the piece. */
   role?: Copy;
-  client?: string;
-  year?: string;
-  /** Videos load their player only when pressed. */
-  youtubeId?: string;
-  /** The stand-in picture, shown until `image` (or a video) is supplied. */
-  thumb: ThumbName;
+  /** A video: nothing of it is fetched until its play mark is pressed. */
+  video?: VideoFile;
+  /** A design's pages, in order. The first is its cover; opened, the piece is paged through. */
+  pages?: Picture[];
+  /** The piece's own picture: a photograph as shown in the row, or a still (sumud). */
   image?: Picture;
+  /** A photograph at full size, for when it is opened. */
+  full?: Picture;
+  /** A view of the garden that stands in until the piece's own picture is supplied. */
+  thumb?: ThumbName;
   /** Said under the stand-in picture, where it could otherwise be taken for the piece's own art. */
   standIn?: Copy;
   href?: string;
@@ -101,14 +114,17 @@ export interface ShowcaseItem {
   confirmed: boolean;
 }
 
-/** A client's words. Stand-ins say what will sit there and name nobody; real ones are supplied by the owner. */
+/** A client's words, as the client wrote them. A stand-in says what will sit there and names nobody. */
 export interface Testimonial {
   quote: Copy;
-  /** Who said it. A stand-in says "name, what they do". */
+  /** Who said it, as far as the owner wants it said. */
   name: Copy;
   href?: string;
   confirmed: boolean;
 }
+
+/** Something in the toolkit: its name, and a word about it where one is needed ("main camera"). */
+export type Tool = string | { name: string; note: string };
 
 export interface NavItem {
   slot: SlotId;
@@ -130,15 +146,17 @@ interface SplitBase {
 }
 
 export interface TechContent extends SplitBase {
-  about: Headed & { paragraphs: Copy[]; toolkit: string[] };
+  about: Headed & { paragraphs: Copy[]; toolkit: Tool[]; resume?: LinkItem };
   work: Headed & { intro?: Copy; projects: string[] };
   proof: Headed & { achievements: Achievement[] };
 }
 
 export interface CreativeContent extends SplitBase {
-  about: Headed & { paragraphs: Copy[]; toolkit: string[] };
-  work: Headed & { intro?: Copy; items: ShowcaseItem[] };
-  proof: Headed & { testimonials: Testimonial[] };
+  about: Headed & { paragraphs: Copy[]; toolkit: Tool[] };
+  /** `lines` is what a group says under its name (keyed by the kind of piece it holds). */
+  work: Headed & { intro?: Copy; lines?: Partial<Record<ShowcaseItem['kind'], Copy>>; items: ShowcaseItem[] };
+  /** `note` is said once above the notes: who the words are from. */
+  proof: Headed & { note?: Copy; testimonials: Testimonial[] };
 }
 
 export interface SiteContent {

@@ -41,14 +41,15 @@ const LABEL = {
  * two going dark by night), and all of it rests while the band is off
  * screen. Its top and bottom edges break up into the page. On a phone the
  * panel sits across the picture's foot and runs on below it, so the pavilion
- * and the pool stay in view.
+ * and the pool stay in view. Three numbers stand in a row; four are set two
+ * by two, so a word like "endless" has room.
  */
 export function SceneBand({ line, numbers }: { line: Copy; numbers: Result[] }) {
   const { split } = useSplit();
   const band = bandArt(split);
   // The stylesheet runs the band's little loops only while it carries data-on.
   const ref = useOnScreen<HTMLElement>();
-  // old figures say when they were counted, once for the whole panel
+  // figures say when they were counted ("as of now", "as of early 2025"), once for the whole panel
   const asOf = [...new Set(numbers.flatMap((number) => number.asOf ?? []))];
 
   return (
@@ -88,7 +89,7 @@ export function SceneBand({ line, numbers }: { line: Copy; numbers: Result[] }) 
         <Glass className="band-panel">
           <Text as="p" copy={line} className="band-line" />
           {numbers.length > 0 && (
-            <dl className="band-numbers">
+            <dl className="band-numbers" data-count={numbers.length}>
               {numbers.map((number) => (
                 <div key={number.label} {...devMark(isPlaceholder(number))}>
                   <dt>{number.value}</dt>

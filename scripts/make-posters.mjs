@@ -12,9 +12,14 @@
 // A poster covers the whole painted world and the lawn below it, so one image
 // serves every screen shape.
 //
+// The page asks for a poster by its version (src/hero/scene/posters.ts, also
+// written here: a hash of both images), so a browser or a cache that holds an
+// older picture can never show it under a newer scene.
+//
 // Run after pack-atlas: it reads public/art/atlas.png and atlas.json.
 import sharp from 'sharp';
-import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { buildStage, INSTANCE_SIZE, writeInstances } from '../src/hero/engine/stage.ts';
@@ -30,6 +35,7 @@ const atlasWidth = atlas.size[0];
 
 const width = framing.world[0];
 const height = framing.world[1] + framing.lawn;
+const hash = createHash('sha1');
 
 for (const split of ['creative', 'tech']) {
   const out = Buffer.alloc(width * height * 3);
@@ -62,5 +68,15 @@ for (const split of ['creative', 'tech']) {
     .toFile(file);
   const check = await sharp(file).removeAlpha().raw().toBuffer();
   if (!check.equals(out)) throw new Error(`poster-${split}: the colour table changed pixels`);
+  hash.update(await readFile(file));
   console.log(`poster-${split}.png: ${width}x${height}, ${count} sprites, ${(size / 1024).toFixed(1)} kB`);
 }
+
+const version = hash.digest('hex').slice(0, 10);
+await writeFile(
+  path.join(root, 'src', 'hero', 'scene', 'posters.ts'),
+  `/** Written by scripts/make-posters.mjs: changes whenever a pixel of either poster does. The page adds it to their address. */
+export const POSTER_VERSION = '${version}';
+`,
+);
+console.log(`posters: version ${version}`);

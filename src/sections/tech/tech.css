@@ -50,6 +50,19 @@
   color: var(--ink-2);
 }
 
+/* the resume, as a button under the words, and what kind of file it is */
+.tech-about-resume {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-1);
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: var(--t-caption);
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
 .tech-ground {
   position: relative;
   height: calc(var(--px) * 28);
@@ -430,20 +443,38 @@ html[data-motion='on'] .tech-lamp-head[data-on] > .glyph {
   height: 100%;
 }
 
+/*
+ * Six columns, so a row can hold two cards or three. Each card is told how
+ * many stand in its row (TechWork's rowsOf): data-row2 where rows hold up to
+ * two, data-row3 where they hold up to three. No row ends with an empty place.
+ */
 @media (min-width: 700px) {
   .tech-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
-  .tech-cards > li[data-wide],
-  .tech-cards > li:last-child:nth-child(even) {
+  .tech-cards > li {
+    grid-column: span 3;
+  }
+
+  .tech-cards > li[data-wide] {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 700px) and (max-width: 999px) {
+  .tech-cards > li[data-row2='1'] {
     grid-column: 1 / -1;
   }
 }
 
 @media (min-width: 1000px) {
-  .tech-cards {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .tech-cards > li[data-row3='3'] {
+    grid-column: span 2;
+  }
+
+  .tech-cards > li[data-row3='1'] {
+    grid-column: 1 / -1;
   }
 }
 
@@ -484,6 +515,14 @@ html[data-motion='on'] .tech-lamp-head[data-on] > .glyph {
   padding-top: var(--s-2);
 }
 
+/* A card's own picture (sumud's key art): a finished picture with its own lettering, so it is shown whole and smooth, with nothing cut into it. */
+.tech-card-picture {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: var(--s-2);
+}
+
 /* A card with the whole row: what it is on the left, how it was built on the right. */
 @media (min-width: 700px) {
   li[data-wide] .tech-card {
@@ -504,6 +543,28 @@ html[data-motion='on'] .tech-lamp-head[data-on] > .glyph {
 
   li[data-wide] .tech-card-foot {
     margin-top: 0;
+  }
+
+  /* With a picture: the picture on the left, and all the words in one column beside it. */
+  li[data-wide][data-pictured] .tech-card {
+    grid-template: 'picture head' auto 'picture rest' 1fr / minmax(0, 6fr) minmax(0, 5fr);
+    gap: var(--s-3) var(--s-5);
+    align-items: start;
+  }
+
+  li[data-pictured] .tech-card-picture {
+    grid-area: picture;
+    margin-bottom: 0;
+  }
+
+  li[data-pictured] .tech-card-head {
+    grid-area: head;
+  }
+
+  li[data-pictured] .tech-card-rest {
+    grid-area: rest;
+    justify-content: start;
+    gap: var(--s-2);
   }
 }
 

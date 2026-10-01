@@ -19,15 +19,16 @@ import { techLabel } from './label';
 const LAMP_LIT = ['....b....', '...bbb...', '..bbbbb..', '..b.o.b..', '..boaob..', '..baiab..', '..boaob..', '..bbbbb..', '...bbb...'];
 const LAMP_DARK = ['....m....', '...mmm...', '..mmmmm..', '..m...m..', '..m...m..', '..m.d.m..', '..m...m..', '..mmmmm..', '...mmm...'];
 
-/** What a line says above its title: when it happened, that the date still wants confirming, or that it has not happened. */
-function when({ year, confirmed }: Achievement): string {
-  if (!year) return 'not yet';
+/** What a line says above its title: when it happened, that the date still wants confirming, or that it has not happened. Nothing, for a confirmed line whose year is not known. */
+function when({ year, confirmed }: Achievement): string | null {
+  if (!year) return confirmed ? null : 'not yet';
   return confirmed ? year : `${year}, to confirm`;
 }
 
 function Stop({ achievement, index }: { achievement: Achievement; index: number }) {
-  // only a line that has happened and been confirmed shines: a stand-in or an unchecked claim never passes for a result
-  const lit = Boolean(achievement.year) && achievement.confirmed;
+  // only a confirmed line shines: a stand-in or an unchecked claim never passes for a result
+  const lit = achievement.confirmed;
+  const date = when(achievement);
   const title = <Text copy={achievement.title} />;
   return (
     <li data-lit={lit ? '' : undefined} style={{ '--i': index } as CSSProperties} {...devMark(isPlaceholder(achievement))}>
@@ -37,7 +38,7 @@ function Stop({ achievement, index }: { achievement: Achievement; index: number 
       </span>
       <Reveal order={index}>
         <PixelEdge tone={lit ? 'paper' : 'sunk'} shadow={lit} cut={index + 1} bodyClassName="tech-plaque">
-          <p className={achievement.year ? 'tech-num' : 'tag'}>{when(achievement)}</p>
+          {date && <p className={achievement.year ? 'tech-num' : 'tag'}>{date}</p>}
           <p className="tech-plaque-title">
             {achievement.href ? (
               <PixelLink inline href={achievement.href} rel="noreferrer">
@@ -55,12 +56,13 @@ function Stop({ achievement, index }: { achievement: Achievement; index: number 
 }
 
 /**
- * Achievements, on the tech side: lamps along a path, oldest first. A line
- * that has happened and been confirmed has its lamp lit. One still to come
- * (no year) keeps a dark lamp and says "not yet"; one the owner has yet to
- * confirm keeps a dark lamp too and says so, so neither can pass for a
- * result. Beside the path, and keeping pace with it, where it leads: the
- * garden wall and the city beyond, seen through one of the pavilion's arches.
+ * Achievements, on the tech side: lamps along a path, in the owner's order.
+ * A confirmed line has its lamp lit, and says when it happened where that is
+ * known. One still to come (unconfirmed, no year) keeps a dark lamp and says
+ * "not yet"; one the owner has yet to confirm keeps a dark lamp too and says
+ * so, so neither can pass for a result. Beside the path, and keeping pace
+ * with it, where it leads: the garden wall and the city beyond, seen through
+ * one of the pavilion's arches.
  */
 export function TechProof() {
   const { proof } = site.tech;

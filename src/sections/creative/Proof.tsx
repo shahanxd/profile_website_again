@@ -8,18 +8,22 @@ import { devMark, isPlaceholder } from '../../content/visible';
 import { Kite } from './Kite';
 
 /**
- * What clients said: notes pinned along the carpet's border, with one of the
- * garden's kites in the sky beside the heading, its line tied to the border's
- * end. Stand-ins say what will sit there and name nobody.
+ * What was said about the work: notes pinned along the carpet's border, with
+ * one of the garden's kites in the sky beside the heading, its line tied to
+ * the border's end. The words are the client's own, exactly as written, so
+ * they keep their capitals; who wrote them is said once above the notes and
+ * again, briefly, under each. The notes are told how many they are, so they
+ * fall into even rows whatever their lengths.
  */
 export function CreativeProof() {
-  const { testimonials } = site.creative.proof;
+  const { note, testimonials } = site.creative.proof;
 
   return (
     <div className="cr-proof">
+      {note && <Text as="p" copy={note} className="cr-proof-note" />}
       <Kite run={26} drop={27} className="cr-proof-kite" />
       <div className="kilim" aria-hidden="true" />
-      <ul className="cr-notes">
+      <ul className="cr-notes" data-count={testimonials.length}>
         {testimonials.map((testimonial, i) => (
           <Reveal key={i} as="li" order={i}>
             <span className="cr-pin" aria-hidden="true" />

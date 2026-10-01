@@ -182,9 +182,7 @@ function layLawn(plate, seed) {
 // ------------------------------------------------------------------------ life
 // What each sprite needs beyond its pixels: named points (in sprite pixels,
 // for things that attach to it or start from it) and the frames of its small
-// movements. `size` is the sprite size a recipe was made for: if the art is
-// rebuilt at another size the recipe is skipped, with a warning, and the
-// sprite comes in as a single still frame until the recipe is redone.
+// movements.
 //
 // `frames` and each entry of `patches` get `edit`, which hands out a fresh
 // copy of the pose to draw on, and return the frames that follow the pose.

@@ -8,19 +8,31 @@
  * engine/camera.ts with what it can know, so the first paint is already in
  * place and the script has nothing to move. The other numbers come from
  * framing.ts as custom properties.
+ *
+ * The sums are made on the hero's two children, not on the hero, because
+ * they need the hero's own width: 100vw counts a scrollbar the hero does not
+ * have, and with one a window of the wrong width would be given a larger
+ * pixel here than the script gives it. A child can measure the hero (100cqw)
+ * once the hero is made a container, below; 100vw is for browsers that cannot.
+ * Its height is the screen's (100svh): copy that outgrows a short phone makes
+ * the hero taller, but only where the view starts at the top of the world
+ * whatever the height. Both are lengths, not percentages, so the results can
+ * be used as offsets and in a transform alike.
  */
-.hero {
-  --k: max(100vw / var(--world-w), 100svh / var(--rows), min(100svh / var(--land-h), 100vw / var(--land-w)));
-  --ideal-left: max(0px - var(--land-left) * var(--k), (100% - var(--world-w) * var(--k)) / 2);
-  --ideal-top: calc(var(--land-y) - var(--focus-y) * var(--k));
-  --poster-left: clamp(100% - var(--world-w) * var(--k), var(--ideal-left), 0px);
-  --poster-top: min(0px, var(--ideal-top), 100% - var(--floor) * var(--k));
+.hero > * {
+  --hero-w: 100vw;
+  --hero-h: 100svh;
+  --k: max(var(--hero-w) / var(--world-w), var(--hero-h) / var(--rows), min(var(--hero-h) / var(--land-h), var(--hero-w) / var(--land-w)));
+  --ideal-left: max(0px - var(--land-left) * var(--k), (var(--hero-w) - var(--world-w) * var(--k)) / 2);
+  --ideal-top: calc(var(--land-t) * var(--hero-h) - var(--focus-y) * var(--k));
+  --poster-left: clamp(var(--hero-w) - var(--world-w) * var(--k), var(--ideal-left), 0px);
+  --poster-top: min(0px, var(--ideal-top), var(--hero-h) - var(--floor) * var(--k));
 }
 
 @media (orientation: portrait) {
-  .hero {
-    --k: max(100vw / var(--world-w), 100svh / var(--rows), min(100vw / var(--port-w), 100svh / var(--port-h)));
-    --ideal-left: calc(50% - var(--focus-x) * var(--k));
+  .hero > * {
+    --k: max(var(--hero-w) / var(--world-w), var(--hero-h) / var(--rows), min(var(--hero-w) / var(--port-w), var(--hero-h) / var(--port-h)));
+    --ideal-left: calc(var(--hero-w) / 2 - var(--focus-x) * var(--k));
     --ideal-top: 0px;
   }
 }
@@ -38,40 +50,47 @@
  * less than the smallest step it can really take: --tiny for k, --nudge for
  * the camera (NUDGE in camera.ts). The results are those of camera.ts.
  */
-@supports (width: round(1px, 1px)) {
+@supports (width: round(1px, 1px)) and (width: 1cqw) {
   .hero {
+    container-type: inline-size;
     --dpx: 1px;
+    /* the size the poster is laid out at, per art pixel: see .garden-poster */
+    --poster-unit: 1px;
+  }
+
+  .hero > * {
+    --hero-w: 100cqw;
     --tiny: calc(var(--dpx) * 0.001);
     /* never more on screen than is painted, across or down */
     --k-fit: max(
-      round(up, 100vw / var(--world-w) - var(--tiny), var(--dpx)),
-      round(up, 100svh / var(--rows) - var(--tiny), var(--dpx))
+      round(up, var(--hero-w) / var(--world-w) - var(--tiny), var(--dpx)),
+      round(up, var(--hero-h) / var(--rows) - var(--tiny), var(--dpx))
     );
     --k: max(
       var(--k-fit),
       min(
-        round(100svh / var(--land-h) + var(--tiny), var(--dpx)),
-        round(100vw / var(--land-w) + var(--tiny), var(--dpx))
+        round(var(--hero-h) / var(--land-h) + var(--tiny), var(--dpx)),
+        round(var(--hero-w) / var(--land-w) + var(--tiny), var(--dpx))
       )
     );
     /* the camera sits on whole art pixels */
     --nudge: calc(var(--k) * 0.03);
-    --ideal-left: max(0px - var(--land-left) * var(--k), round(up, (100% - var(--world-w) * var(--k)) / 2 - var(--nudge), var(--k)));
-    --ideal-top: round(var(--land-y) - var(--focus-y) * var(--k) + var(--nudge), var(--k));
-    --poster-left: clamp(round(up, 100% - var(--world-w) * var(--k) - var(--nudge), var(--k)), var(--ideal-left), 0px);
-    --poster-top: min(0px, var(--ideal-top), round(up, 100% - var(--floor) * var(--k) - var(--nudge), var(--k)));
+    --ideal-left: max(0px - var(--land-left) * var(--k), round(up, (var(--hero-w) - var(--world-w) * var(--k)) / 2 - var(--nudge), var(--k)));
+    --ideal-top: round(var(--land-t) * var(--hero-h) - var(--focus-y) * var(--k) + var(--nudge), var(--k));
+    --poster-left: clamp(round(up, var(--hero-w) - var(--world-w) * var(--k) - var(--nudge), var(--k)), var(--ideal-left), 0px);
+    --poster-top: min(0px, var(--ideal-top), round(up, var(--hero-h) - var(--floor) * var(--k) - var(--nudge), var(--k)));
   }
 
   @media (orientation: portrait) {
-    .hero {
+    .hero > * {
       --k: max(
         var(--k-fit),
         min(
-          round(down, 100vw / var(--port-w) + var(--tiny), var(--dpx)),
-          round(down, 100svh / var(--port-h) + var(--tiny), var(--dpx))
+          round(down, var(--hero-w) / var(--port-w) + var(--tiny), var(--dpx)),
+          round(down, var(--hero-h) / var(--port-h) + var(--tiny), var(--dpx))
         )
       );
-      --ideal-left: round(50% - var(--focus-x) * var(--k) + var(--nudge), var(--k));
+      --ideal-left: round(var(--hero-w) / 2 - var(--focus-x) * var(--k) + var(--nudge), var(--k));
       --ideal-top: 0px;
     }
   }
@@ -79,19 +98,19 @@
   /* prettier-ignore */
   @media (min-resolution: 0.5dppx) { .hero { --dpx: calc(1px / 0.5); } }
   /* prettier-ignore */
-  @media (min-resolution: 0.66dppx) { .hero { --dpx: calc(1px * 3 / 2); } }
+  @media (min-resolution: 0.66dppx) { .hero { --dpx: calc(1px * 3 / 2); --poster-unit: var(--dpx); } }
   /* prettier-ignore */
-  @media (min-resolution: 0.75dppx) { .hero { --dpx: calc(1px / 0.75); } }
+  @media (min-resolution: 0.75dppx) { .hero { --dpx: calc(1px / 0.75); --poster-unit: 1px; } }
   /* prettier-ignore */
-  @media (min-resolution: 0.79dppx) { .hero { --dpx: calc(1px / 0.8); } }
+  @media (min-resolution: 0.79dppx) { .hero { --dpx: calc(1px / 0.8); --poster-unit: var(--dpx); } }
   /* prettier-ignore */
   @media (min-resolution: 0.89dppx) { .hero { --dpx: calc(1px / 0.9); } }
   /* prettier-ignore */
-  @media (min-resolution: 1dppx) { .hero { --dpx: 1px; } }
+  @media (min-resolution: 1dppx) { .hero { --dpx: 1px; --poster-unit: 1px; } }
   /* prettier-ignore */
-  @media (min-resolution: 1.09dppx) { .hero { --dpx: calc(1px / 1.1); } }
+  @media (min-resolution: 1.09dppx) { .hero { --dpx: calc(1px / 1.1); --poster-unit: var(--dpx); } }
   /* prettier-ignore */
-  @media (min-resolution: 1.25dppx) { .hero { --dpx: calc(1px / 1.25); } }
+  @media (min-resolution: 1.25dppx) { .hero { --dpx: calc(1px / 1.25); --poster-unit: 1px; } }
   /* prettier-ignore */
   @media (min-resolution: 1.5dppx) { .hero { --dpx: calc(1px / 1.5); } }
   /* prettier-ignore */
@@ -124,6 +143,22 @@
   overflow: hidden;
 }
 
+/*
+ * The canvas is drawn one to one, so its box must be a whole number of device
+ * pixels tall. A hero the height of the screen already is. One that long
+ * copy on a short phone has made taller is not: what it has grown by is
+ * rounded up, to whole CSS pixels first (what a browser emulating a phone
+ * goes by) and then to device pixels. A hero that has not grown is left
+ * exactly as it is, or the camera would be framing a taller screen than the
+ * stylesheet is.
+ */
+@supports (width: round(1px, 1px)) and (width: 1cqw) {
+  .garden {
+    bottom: auto;
+    height: calc(100svh + round(up, round(up, 100% - 100svh - 0.01px, 1px), var(--dpx)));
+  }
+}
+
 .garden-canvas {
   position: absolute;
   inset: 0;
@@ -141,6 +176,27 @@
   height: calc(var(--rows) * var(--k));
   max-width: none;
   image-rendering: pixelated;
+}
+
+/*
+ * Layout keeps lengths to 1/64 of a CSS pixel, and a third of a pixel is not
+ * one of those: on a phone at 3x the box above comes out a hair off 8 device
+ * pixels per art pixel, in size or in place, and one row in eight is drawn a
+ * device pixel out. Where the browser can divide one length by another, the
+ * poster is laid out at a size layout can hold exactly (one CSS pixel per art
+ * pixel, which is a whole number of device pixels at most ratios; one device
+ * pixel per art pixel at the others) and moved and scaled as a transform,
+ * which is not rounded. The script does the same (placeScene in Hero.tsx).
+ */
+@supports (scale: calc(1px / 1px)) and (width: round(1px, 1px)) and (width: 1cqw) {
+  .garden-poster {
+    left: 0;
+    top: 0;
+    width: calc(var(--world-w) * var(--poster-unit));
+    height: calc(var(--rows) * var(--poster-unit));
+    transform-origin: 0 0;
+    transform: translate(var(--poster-left), var(--poster-top)) scale(calc(var(--k) / var(--poster-unit)));
+  }
 }
 
 /*

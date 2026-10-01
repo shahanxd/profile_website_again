@@ -1,4 +1,5 @@
 import { copyText, isDraft, type Copy } from '../content/types';
+import { draftMark } from '../content/visible';
 import { useResolve } from '../motion/resolve';
 
 interface ResolveHeadingProps {
@@ -20,10 +21,9 @@ export function ResolveHeading({ copy, mark, className, ...rest }: ResolveHeadin
   const ref = useResolve<HTMLHeadingElement>();
   const text = copyText(copy);
   const at = mark ? text.indexOf(mark) : -1;
-  const draft = import.meta.env.DEV && isDraft(copy);
 
   return (
-    <h2 ref={ref} className={className} data-draft={draft ? '' : undefined} title={draft ? 'draft copy' : undefined} {...rest}>
+    <h2 ref={ref} className={className} {...draftMark(isDraft(copy))} {...rest}>
       {!mark || at < 0 ? (
         text
       ) : (

@@ -7,9 +7,8 @@ import type { GardenEngine } from './engine';
 import { loadAtlas } from './engine/atlas';
 import { frameView, isPortrait, watchDeviceSize } from './engine/camera';
 import { framing } from './scene/framing';
+import { POSTER_VERSION } from './scene/posters';
 import './hero.css';
-
-const percent = (fraction: number) => `${fraction * 100}%`;
 
 /** The poster holds the whole painted world and the lawn below it. */
 const POSTER = { width: framing.world[0], height: framing.world[1] + framing.lawn };
@@ -17,7 +16,6 @@ const POSTER = { width: framing.world[0], height: framing.world[1] + framing.law
 // framing.ts and the switch timings, handed to hero.css so the scene is already in place before any script runs.
 const heroVars = {
   '--world-w': framing.world[0],
-  '--world-h': framing.world[1],
   '--rows': POSTER.height,
   '--focus-x': framing.focus[0],
   '--focus-y': framing.focus[1],
@@ -25,7 +23,7 @@ const heroVars = {
   '--land-h': framing.landscape.height,
   '--land-w': framing.landscape.width,
   '--land-left': framing.landscape.left,
-  '--land-y': percent(framing.landscape.target),
+  '--land-t': framing.landscape.target,
   '--port-w': framing.portrait.width,
   '--port-h': framing.portrait.height,
   '--cover-ms': `${COVER_MS}ms`,
@@ -42,9 +40,13 @@ function placeScene(hero: HTMLElement, poster: HTMLImageElement, canvas: HTMLCan
   const view = frameView(deviceW, deviceH, framing, isPortrait());
   const cssPerDevice = canvas.getBoundingClientRect().width / deviceW;
   const cssPerArt = cssPerDevice * view.k;
-  hero.style.setProperty('--k', `${cssPerArt}px`);
-  hero.style.setProperty('--poster-left', `${-view.x * cssPerArt}px`);
-  hero.style.setProperty('--poster-top', `${-view.y * cssPerArt}px`);
+  // On the hero's children, where the stylesheet makes its own estimate of the same three (see hero.css).
+  for (const part of hero.children) {
+    if (!(part instanceof HTMLElement)) continue;
+    part.style.setProperty('--k', `${cssPerArt}px`);
+    part.style.setProperty('--poster-left', `${-view.x * cssPerArt}px`);
+    part.style.setProperty('--poster-top', `${-view.y * cssPerArt}px`);
+  }
   // Scaled and moved as a transform. The stylesheet's way (left, top, width and height) goes through layout,
   // which keeps lengths to 1/64 px and snaps boxes to whole pixels: at a pixel ratio of 3 in Chrome's phone
   // emulation that put the poster one device pixel below the canvas. A transform is applied as given.
@@ -177,7 +179,7 @@ export function Hero() {
         <img
           ref={posterRef}
           className="garden-poster"
-          src={`${import.meta.env.BASE_URL}art/poster-${split}.png`}
+          src={`${import.meta.env.BASE_URL}art/poster-${split}.png?v=${POSTER_VERSION}`}
           width={POSTER.width}
           height={POSTER.height}
           alt=""

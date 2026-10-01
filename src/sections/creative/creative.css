@@ -39,12 +39,17 @@
   text-wrap: balance;
 }
 
+/* the rest of the note, in the reading size: a measure a little longer than the statement's lines, so three paragraphs do not make a tower */
 .cr-statement-more {
-  max-width: 46ch;
+  max-width: 58ch;
   margin-top: var(--s-3);
   color: var(--ink-2);
-  font-size: var(--t-lead);
-  line-height: 1.5;
+  font-size: var(--t-body);
+  line-height: 1.6;
+}
+
+.cr-statement + .cr-statement-more {
+  margin-top: var(--s-4);
 }
 
 /* The coffee tray, on the corner of the carpet: its border runs in from the right edge of the page as far as the note. */
@@ -154,12 +159,21 @@ html[data-motion='on'] .cr-still[data-on] .cr-steam {
   margin-top: var(--s-5);
 }
 
-/* A group's name, a row of dots, and how many pieces it holds. */
+/* A group's name, a row of dots, and how many pieces it holds. Under them, where the group has one, a line about it. */
 .cr-group-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--s-2);
+  gap: 0 var(--s-2);
   margin-bottom: var(--s-4);
+}
+
+.cr-group-line {
+  flex-basis: 100%;
+  margin-top: var(--s-1);
+  color: var(--ink-2);
+  font-size: var(--t-small);
+  line-height: 1.45;
 }
 
 .cr-group-head > h3 {
@@ -179,7 +193,7 @@ html[data-motion='on'] .cr-still[data-on] .cr-steam {
   margin-top: var(--s-2);
 }
 
-.cr-caption > h4 {
+.cr-caption h4 {
   font-family: var(--font-display);
   font-size: 21px;
   font-weight: 500;
@@ -190,8 +204,27 @@ html[data-motion='on'] .cr-still[data-on] .cr-steam {
 }
 
 /* the featured piece's title: larger, but under the group's name */
-.cr-caption[data-big] > h4 {
+.cr-caption[data-big] h4 {
   font-size: calc(var(--t-h3) * 0.8);
+}
+
+/* A title with a fact beside it at the far end of its line: how long a video runs, how many pages a design has. */
+.cr-caption-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.cr-meta,
+.cr-count {
+  flex: none;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: var(--t-caption);
+  letter-spacing: 0.06em;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .cr-caption > p {
@@ -301,6 +334,10 @@ html[data-motion='on'] .cr-still[data-on] .cr-steam {
   padding: calc(var(--px) * 4);
 }
 
+.cr-hit[data-corner='start'] {
+  place-items: end start;
+}
+
 .cr-hit:hover .cr-mark > span,
 .cr-hit:focus-visible .cr-mark > span {
   background: var(--accent);
@@ -344,10 +381,18 @@ html[data-motion='on'] .cr-still[data-on] .cr-steam {
   }
 }
 
-/* Side by side, the featured piece is as tall as the column of small ones, so its words and the last small piece's end on one line. */
-@media (min-width: 960px) {
+/*
+ * Side by side, the featured piece is as tall as the column of small ones,
+ * so its words and the last small piece's end on one line. The small column
+ * is given the width at which that happens with every picture at sixteen by
+ * nine: two small pictures, their words and the gap between them come to the
+ * height of the large picture and its words when the small column is a third
+ * of the row less about twenty page pixels. What is left over by a title
+ * that wraps is taken up by the large frame, whose picture covers it.
+ */
+@media (min-width: 1100px) {
   .cr-videos {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) calc((100% - var(--s-4)) / 3 - var(--px) * 20);
   }
 
   .cr-videos-rest {
@@ -370,10 +415,9 @@ html[data-motion='on'] .cr-still[data-on] .cr-steam {
     aspect-ratio: auto;
   }
 
-  /* a playing video keeps its own shape, in the middle of the same space */
+  /* a playing video has exactly the space its poster had, so nothing moves when it starts */
   .cr-videos-first .cr-player {
-    display: grid;
-    align-items: center;
+    height: 100%;
   }
 }
 
@@ -386,7 +430,7 @@ html[data-motion='on'] .cr-still[data-on] .cr-steam {
 
 .cr-screen > .pixel-image,
 .cr-screen > img,
-.cr-screen > iframe {
+.cr-screen > video {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -394,19 +438,35 @@ html[data-motion='on'] .cr-still[data-on] .cr-steam {
   border: 0;
 }
 
+/* A poster is a photograph: shown smooth, and filling its window. */
 .cr-screen > img {
   object-fit: cover;
+}
+
+/* The player shows the whole picture, on black where the window is not quite its shape. */
+.cr-screen > video {
+  object-fit: contain;
+  background: #000;
+}
+
+.cr-screen > video:focus-visible {
+  outline-offset: calc(var(--hair) * -2);
 }
 
 .cr-screen[data-big] .cr-mark {
   --u: calc(var(--px) * 2);
 }
 
-/* A playing video's frame: a plain ink rim and the same hard shadow, nothing over the player. */
+/* A playing video's frame: a plain ink rim and the same hard shadow, nothing over the player. The rim is as wide as the arch's own, so the featured player is exactly the size of its poster. */
 .cr-player {
   padding: var(--px);
   background: var(--ink);
   box-shadow: calc(var(--px) * 2) calc(var(--px) * 2) 0 var(--shade);
+}
+
+/* a small piece's eaten frame has no rim, so neither has its player: the same box, and nothing below it moves */
+.cr-videos-rest .cr-player {
+  padding: 0;
 }
 
 /* The arch lifts off its shadow as the eaten frames do. */
@@ -461,6 +521,9 @@ html[data-motion='on'] .cr-slate {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: var(--gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .cr-piece {
@@ -489,11 +552,16 @@ html[data-motion='on'] .cr-slate {
   clip-path: inset(calc(var(--px) * -2) calc(var(--px) * -3) 0 calc(var(--px) * -2));
 }
 
-/* A real piece fills its frame; the frame was given the picture's own shape. */
+/* A real piece fills its frame; the frame was given the picture's own shape. It is shown smooth: only its frame is pixel art. */
 .cr-piece-art .pe-body > img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* The cat beside a tall sheet, for a phone (see below): elsewhere it sits on a frame. */
+.cr-beside {
+  display: none;
 }
 
 /* The ledge runs on under the gap to the next piece, so the pieces of a row share one. Under it, a panel of the pavilion's jali railing, cut to whole repeats. */
@@ -524,8 +592,32 @@ html[data-motion='on'] .cr-slate {
 
 @media (max-width: 767px) {
   /* a piece alone in the last row: its ledge runs on under the empty place beside it */
-  .cr-piece:last-child:nth-child(odd) > .cr-ledge {
+  .cr-gallery:not([data-fit]) > .cr-piece:last-child:nth-child(odd) > .cr-ledge {
     margin-right: calc(-100% - var(--gap) * 1.5);
+  }
+
+  /*
+   * A few real pieces, on a phone: one to a row, each as wide as the column,
+   * so a wide page can be read. A tall sheet takes a little over half the
+   * row, and the cat sits on the ledge beside it instead of on a frame.
+   */
+  .cr-gallery[data-fit] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cr-gallery[data-fit] > .cr-piece[data-tall] .cr-piece-art {
+    width: 58%;
+  }
+
+  .cr-gallery[data-fit] .cr-perch {
+    display: none;
+  }
+
+  .cr-gallery[data-fit] .cr-beside {
+    display: inline-block;
+    position: absolute;
+    right: calc(var(--px) * 12);
+    bottom: 0;
   }
 }
 
@@ -534,11 +626,98 @@ html[data-motion='on'] .cr-slate {
     --gap: var(--s-4);
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  /* a few real pieces share the row by their shapes: a tall sheet is given less of it than a wide page */
+  .cr-gallery[data-fit] {
+    grid-template-columns: var(--shares);
+  }
+
+  /*
+   * Their places are of different widths, so a railing cut to whole repeats
+   * under each would leave gaps between them. Each piece is put in its place
+   * by name, which lets one railing run under the whole row, over the
+   * pieces' own ledges.
+   */
+  .cr-gallery[data-fit] > .cr-piece {
+    grid-row: 1 / span 3;
+  }
+
+  .cr-gallery[data-fit] > .cr-piece:nth-child(1) {
+    grid-column: 1;
+  }
+
+  .cr-gallery[data-fit] > .cr-piece:nth-child(2) {
+    grid-column: 2;
+  }
+
+  .cr-gallery[data-fit] > .cr-piece:nth-child(3) {
+    grid-column: 3;
+  }
+
+  .cr-gallery[data-fit] .cr-ledge::after {
+    content: none;
+  }
+
+  .cr-gallery[data-fit]::after {
+    content: '';
+    grid-area: 2 / 1 / 3 / -1;
+    justify-self: center;
+    width: calc(100% + var(--gap));
+    margin-top: var(--px);
+    background: var(--ink-3);
+    opacity: 0.3;
+    mask-image: var(--tile-jali);
+    mask-size: calc(var(--px) * 12) calc(var(--px) * 12);
+    image-rendering: pixelated;
+    pointer-events: none;
+  }
+
+  @supports (width: round(down, 1px, 1px)) {
+    .cr-gallery[data-fit]::after {
+      width: round(down, 100% + var(--gap), calc(var(--px) * 12));
+    }
+  }
 }
 
-/* A piece opened larger: a card in the middle of the dimmed page. */
+/* --- photographs: a row of square prints ------------------------------------------- */
+.cr-photos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-4) var(--s-3);
+  margin: 0;
+  padding: 0 calc(var(--px) * 2) 0 0;
+  list-style: none;
+}
+
+.cr-photos .pe-body {
+  aspect-ratio: 1;
+  line-height: 0;
+}
+
+.cr-photos .pe-body > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (min-width: 768px) {
+  .cr-photos {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--s-4);
+  }
+}
+
+/*
+ * A piece opened larger: a card in the middle of the dimmed page. --ratio is
+ * the shape of the picture being shown (width over height); the card is as
+ * wide as the window allows, and never so wide that the picture, at that
+ * shape, would not fit the window's height above the card's foot (--foot:
+ * the room kept for the words, the buttons and the card's own edges).
+ */
 .cr-lightbox {
-  width: min(100vw - 2 * var(--gutter), 920px, (100svh - 240px) * 1.6);
+  --pad: calc(var(--px) * 5);
+  --foot: 200px;
+  width: min(100vw - 2 * var(--gutter), 1100px, (100svh - var(--foot)) * var(--ratio, 1.6) + 2 * var(--pad));
   max-width: none;
   max-height: none;
   margin: auto;
@@ -556,12 +735,14 @@ html:has(.cr-lightbox[open]) {
 }
 
 .cr-lightbox .pe-body {
-  padding: calc(var(--px) * 5);
+  padding: var(--pad);
 }
 
-/* A tall piece is shown whole, inside the window's height. */
+/* The picture's place is kept at its shape while it loads, so the card does not jump from page to page. */
 .cr-lightbox-art {
-  max-height: calc(100svh - 240px);
+  aspect-ratio: var(--ratio, 1.6);
+  background: var(--bg-2);
+  line-height: 0;
 }
 
 .cr-lightbox-art > img {
@@ -580,7 +761,83 @@ html:has(.cr-lightbox[open]) {
 }
 
 .cr-lightbox-foot > .cr-caption {
+  flex: 1 1 12em;
   margin-top: 0;
+}
+
+/* the pager, then close */
+.cr-lightbox-keys {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-left: auto;
+}
+
+.cr-pager {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.cr-pager .px-btn-face {
+  padding-inline: calc(var(--px) * 3);
+}
+
+.cr-count {
+  min-width: 6ch;
+  color: var(--ink-2);
+  font-size: var(--t-label);
+  text-align: center;
+}
+
+/* an arrowhead cut in pixels, four wide and seven tall: forward, or (data-back) back */
+.cr-tri {
+  display: block;
+  width: calc(var(--px) * 4);
+  height: calc(var(--px) * 7);
+  background: currentColor;
+  clip-path: polygon(
+    0 0,
+    25% 0,
+    25% 14.29%,
+    50% 14.29%,
+    50% 28.57%,
+    75% 28.57%,
+    75% 42.86%,
+    100% 42.86%,
+    100% 57.14%,
+    75% 57.14%,
+    75% 71.43%,
+    50% 71.43%,
+    50% 85.71%,
+    25% 85.71%,
+    25% 100%,
+    0 100%
+  );
+}
+
+.cr-tri[data-back] {
+  transform: scaleX(-1);
+}
+
+/* A phone held upright: the card nearly fills the width, so a wide page is as large as it can be. */
+@media (max-width: 599px) {
+  .cr-lightbox {
+    --pad: calc(var(--px) * 3);
+    width: min(100vw - 4 * var(--px), (100svh - var(--foot)) * var(--ratio, 1.6) + 2 * var(--pad));
+  }
+}
+
+/* A short window (a phone on its side): the words step aside for the picture. */
+@media (max-height: 520px) {
+  .cr-lightbox {
+    --pad: calc(var(--px) * 3);
+    --foot: 104px;
+  }
+
+  .cr-lightbox-foot > .cr-caption > p {
+    display: none;
+  }
 }
 
 /* It arrives the way the headings do: out of dither, in steps. */
@@ -676,6 +933,12 @@ html[data-motion='on'] .cr-lightbox[open] > .pe {
     gap: var(--s-5);
     padding: calc(var(--px) * 10);
   }
+
+  /* the game's own picture carries its title in small lettering: it is given the larger share, so that can be read */
+  .cr-sumud:has(.cr-sumud-still > img) {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: var(--s-4);
+  }
 }
 
 /* --- the kite ----------------------------------------------------------------------
@@ -715,6 +978,16 @@ html[data-motion='on'] .cr-lightbox[open] > .pe {
   .cr-proof-kite {
     display: none;
   }
+}
+
+/* who the words are from, said once: it belongs to the heading, so it sits closer to it than the section's content usually does */
+.cr-proof-note {
+  max-width: 44ch;
+  margin-top: calc(var(--s-4) * -1);
+  margin-bottom: var(--s-5);
+  color: var(--ink-2);
+  font-size: var(--t-lead);
+  line-height: 1.5;
 }
 
 .cr-notes {
@@ -772,10 +1045,27 @@ html[data-motion='on'] .cr-lightbox[open] > .pe {
 
 .cr-notes .pe-body > p:first-child {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: clamp(19px, 0.5vw + 17px, 22px);
   line-height: 1.28;
   letter-spacing: -0.01em;
-  text-wrap: balance;
+  /* a client's words run as written: no balancing, which would leave a long quote ragged */
+  text-wrap: wrap;
+}
+
+/* every note of a row is as tall as the tallest, with its byline at the foot */
+.cr-notes > li > .pe,
+.cr-notes > li > .pe > .pe-body {
+  height: 100%;
+}
+
+.cr-notes .pe-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.cr-notes .cr-byline {
+  margin-top: auto;
+  padding-top: var(--s-3);
 }
 
 .cr-byline {
@@ -801,15 +1091,20 @@ html[data-motion='on'] .cr-lightbox[open] > .pe {
 @media (min-width: 768px) {
   .cr-notes {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: start;
   }
 
-  /* not all pinned at one height, but every one over the border's edge */
-  .cr-notes > li:nth-child(3n + 2) {
+  /* two or four notes stand two to a row: long ones beside long, short beside short */
+  .cr-notes:is([data-count='2'], [data-count='4']) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* not all pinned at one height, but every one of the first row over the border's edge */
+  .cr-notes:not([data-count='2'], [data-count='4']) > li:nth-child(3n + 2),
+  .cr-notes:is([data-count='2'], [data-count='4']) > li:nth-child(2n) {
     margin-top: calc(var(--px) * 2);
   }
 
-  .cr-notes > li:nth-child(3n) {
+  .cr-notes:not([data-count='2'], [data-count='4']) > li:nth-child(3n) {
     margin-top: var(--px);
   }
 }

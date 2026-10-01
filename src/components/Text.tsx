@@ -1,5 +1,6 @@
 import type { ElementType, ReactNode } from 'react';
 import { copyText, isDraft, type Copy } from '../content/types';
+import { draftMark } from '../content/visible';
 
 interface TextProps {
   copy: Copy;
@@ -10,11 +11,10 @@ interface TextProps {
   children?: ReactNode;
 }
 
-/** Renders site copy. Drafts look the same to visitors but are marked while developing. */
+/** Renders site copy. Drafts look the same to visitors; on the development server, ?drafts=1 outlines them. */
 export function Text({ copy, as: Tag = 'span', children, ...rest }: TextProps) {
-  const marked = import.meta.env.DEV && isDraft(copy);
   return (
-    <Tag {...rest} data-draft={marked ? '' : undefined} title={marked ? 'draft copy' : undefined}>
+    <Tag {...rest} {...draftMark(isDraft(copy))}>
       {copyText(copy)}
       {children}
     </Tag>

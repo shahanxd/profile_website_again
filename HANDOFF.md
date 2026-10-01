@@ -47,6 +47,17 @@ In progress (see the note above):
 
 Not built yet: the glass pill menu, all section motion, real art in the scene, real copy.
 
+## Left off at (1 October 2026, about 6 pm IST)
+
+The owner's usage credits were about to run out; they reset at 6:30 pm IST and the owner is away. Work stopped mid-flight, so check before trusting anything below:
+
+- **Two background builds were still running** and may have died when credits ran out. Their files are in this commit as they stood:
+  - the hero real-art **review-and-fix pass** (owns `src/hero/**`, `scripts/import-scene.mjs`, `scripts/make-posters.mjs`): real art is in and renders correctly at 1440x900 on both splits (seen by the main agent); the review had not reported.
+  - the **owner content pass** (owns `src/content`, `src/sections`, `src/components`, `src/styles`): it was in its first stage (applying the owner's 18 changes: real videos, designs, photos, reviews, numbers, copy, achievements, resume, toolkits). Its second stage (a sceptical review) had not started. So the 18 changes may be only partly applied: check each against the list in the conversation or re-run the review.
+- **This snapshot type-checks** (`npm run typecheck`); the full `npm run check` was not run on it.
+- **Edits the main agent made by hand at the owner's request, all in this commit, all to be preserved:** the owner's own tech about wording (see open request 5); Smoke House is "a group project"; Instagram is `instagram.com/shahanxdxd`; the tech toolkit has "mern" in place of react and django; the project is named "project sparrow"; the Amazon ML Challenge line says "ranked around 1.4k among 30k teams"; links that leave the site open in a new tab (`src/components/outbound.ts`, used by PixelButton, PixelLink and the contact cards; in-page links, the split switch and mailto stay in the same tab).
+- **Then do the open requests** in the list further down (hero motion, sumud key art, creative achievements), review both splits in a browser at desktop and phone sizes, run `npm run check`, commit, and move `main` forward.
+
 ## Next steps, in order
 
 1. **Hero engine on grey boxes** (`src/hero/engine/`): WebGL2 layered-sprite renderer at art resolution, whole-number upscaling, portrait framing, parallax, particles, the split dissolve, pause and fallback paths, debug URL switches (`?freeze=`, `?dissolve=`, `?q=`).

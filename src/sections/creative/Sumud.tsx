@@ -8,8 +8,9 @@ import { copyText, type ShowcaseItem } from '../../content/types';
  * panel with a stitched border, the game's own one-line description, and a
  * link. Nothing in it moves, resolves in or lifts; it is simply there, and
  * the page around it goes quiet while it is read (data-tone="plain"). Until
- * the game's own art is supplied the picture is the evening sky, still, and
- * the line under it says that it is a stand-in.
+ * the game's own picture is supplied (`image`, set by sumudStill in
+ * src/content/site.ts) the picture is the evening sky, still, and the line
+ * under it says that it is a stand-in.
  */
 export function Sumud({ item }: { item: ShowcaseItem }) {
   return (
@@ -19,7 +20,7 @@ export function Sumud({ item }: { item: ShowcaseItem }) {
           <img src={item.image.src} alt={item.image.alt} width={item.image.width} height={item.image.height} loading="lazy" decoding="async" />
         ) : (
           <>
-            <Thumb name={item.thumb} />
+            {item.thumb && <Thumb name={item.thumb} />}
             {item.standIn && <Text as="figcaption" copy={item.standIn} />}
           </>
         )}

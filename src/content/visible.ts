@@ -11,10 +11,21 @@ export function isPlaceholder(item: { confirmed: boolean }): boolean {
 }
 
 /**
- * Spread onto the element that shows a placeholder: in development it gets
- * the same dotted outline as draft copy, so the owner can find what is still
- * to be replaced. In production it adds nothing.
+ * Whether stand-ins are pointed out on the page: only on the development
+ * server, and only when the address asks with ?drafts=1. The owner looks at
+ * the development site too, and there the outline is only in the way.
+ * (Development pages are not prerendered, so reading the address here cannot
+ * disagree with any HTML sent ahead.)
  */
+export const showDrafts: boolean =
+  import.meta.env.DEV && typeof location !== 'undefined' && new URLSearchParams(location.search).get('drafts') === '1';
+
+/** What marks an element as a stand-in, when stand-ins are being pointed out: a dotted outline (src/styles/index.css) and a tooltip. */
+export function draftMark(marked: boolean, title = 'draft copy'): { 'data-draft'?: string; title?: string } {
+  return showDrafts && marked ? { 'data-draft': '', title } : {};
+}
+
+/** Spread onto the element that shows a placeholder, so the owner can find what is still to be replaced. In production it adds nothing. */
 export function devMark(placeholder: boolean): { 'data-draft'?: string; title?: string } {
-  return import.meta.env.DEV && placeholder ? { 'data-draft': '', title: 'placeholder' } : {};
+  return draftMark(placeholder, 'placeholder');
 }

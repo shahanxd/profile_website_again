@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { PixelButton } from '../../components/PixelButton';
 import { Sprite } from '../../components/Sprite';
 import { Text } from '../../components/Text';
 import { site } from '../../content/site';
@@ -72,9 +73,9 @@ function Ground() {
 }
 
 /**
- * About, on the tech side: who the owner is in a few short paragraphs, and
- * the toolkit as one row, with the lit lantern for company and the rover on
- * the ground below.
+ * About, on the tech side: who the owner is in a few short paragraphs, the
+ * resume as a button under them, and the toolkit as one row, with the lit
+ * lantern for company and the rover on the ground below.
  */
 export function TechAbout() {
   const { about } = site.tech;
@@ -86,6 +87,12 @@ export function TechAbout() {
             {about.paragraphs.map((paragraph, i) => (
               <Text key={i} as="p" copy={paragraph} />
             ))}
+            {about.resume && (
+              <div className="tech-about-resume">
+                <PixelButton href={about.resume.href}>{about.resume.label}</PixelButton>
+                <span>pdf</span>
+              </div>
+            )}
           </div>
           <Toolkit tools={about.toolkit} />
           <Ground />
