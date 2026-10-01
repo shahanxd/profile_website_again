@@ -41,6 +41,13 @@ Prompts and settings are in `art/requests/03-creative-layers.md` (GPT Image 2.5 
 
 ## Foreground sheets and dusk layers
 
-Prompts and settings are in `art/requests/04-sheets-and-dusk-layers.md`. Status: requested.
+Prompts and settings are in `art/requests/04-sheets-and-dusk-layers.md`.
+
+| Run | Output | Verdict |
+|---|---|---|
+| 1, creative sheet | `art/raw/layers/creative-sheet.png` | **Good.** Eight separate things on flat magenta (figure, parrot, cat, tray, table with tablet, lantern, two kites). Drawn at varying scale, so each is resized to its height in the approved still. |
+| 2, dusk sheet | `art/raw/layers/tech-sheet.png` | **Good.** Six things (figure reclining with laptop and sleeping parrot, cat asleep, lunch tray, table with glowing tablet, lit lantern, rover). Needs the laptop logo painted out and its glow halos handled. |
+| 3, dusk background | not received yet | |
+| 4, dusk tree | not received yet | |
 
 Note: the owner's likeness came out right from the text description alone, so the photo has not been uploaded anywhere.
