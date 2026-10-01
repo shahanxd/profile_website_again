@@ -186,21 +186,21 @@ export function hash(a: number, b: number): number {
 
 export function frameAt(anim: Anim | undefined, frames: number, t: number, seed: number): number {
   if (!anim || frames < 2) return 0;
+  if (anim.mode === 'random-hold') {
+    // time is cut into cycles, and the strip plays once somewhere inside each cycle
+    const play = frames / anim.fps;
+    const cycle = Math.max(anim.every, play);
+    const n = Math.floor(t / cycle);
+    const start = n * cycle + hash(seed, n) * (cycle - play);
+    const frame = Math.floor((t - start) * anim.fps);
+    return frame > 0 && frame < frames ? frame : 0;
+  }
   const step = Math.floor(t * anim.fps);
   if (anim.mode === 'loop') return step % frames;
-  if (anim.mode === 'pingpong') {
-    const there = step % (frames * 2 - 2);
-    return there < frames ? there : frames * 2 - 2 - there;
-  }
   // flicker: any frame, but the very first step rests, so the still frame shows the flame steady
   if (anim.mode === 'flicker') return step ? Math.floor(hash(seed, step) * frames) : 0;
-  // random-hold: time is cut into cycles, and the strip plays once somewhere inside each cycle.
-  const play = frames / anim.fps;
-  const cycle = Math.max(anim.every, play);
-  const n = Math.floor(t / cycle);
-  const start = n * cycle + hash(seed, n) * (cycle - play);
-  const frame = Math.floor((t - start) * anim.fps);
-  return frame > 0 && frame < frames ? frame : 0;
+  const there = step % (frames * 2 - 2);
+  return there < frames ? there : frames * 2 - 2 - there;
 }
 
 /** How far an item is from its resting place right now, along one axis (0 = x, 1 = y), in whole pixels. */

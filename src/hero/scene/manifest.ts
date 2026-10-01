@@ -1,4 +1,4 @@
-import type { Emitter, Hotspot, Layer, Scene, Vec2 } from './types';
+import type { Emitter, Hotspot, Layer, Light, Scene, Vec2 } from './types';
 
 /**
  * The garden, as data. One place staged twice: creative is golden hour, tech
@@ -9,8 +9,8 @@ import type { Emitter, Hotspot, Layer, Scene, Vec2 } from './types';
  * To change art, replace files in art/sprites and run `npm run art:build`.
  * To move something, change `at` here. Neither needs an engine change.
  *
- * z bands: 10 sky things, 20 skyline, 30 wall, 35 lawn, 38-44 middle garden,
- * 50 tree, 60 carpet and everything on it, 80 foreground.
+ * z bands: 10 sky things, 20 skyline, 30 wall, 35 lawn, 38-45 middle garden,
+ * 50 tree, 60 carpet and everything on it, 70 things in the air, 80 foreground.
  */
 
 // Layers that are the same thing placed several times.
@@ -65,7 +65,8 @@ const layers: Layer[] = [
     depth: 0.75,
     at: [0, 0],
     attachTo: { layer: 'tree', point: 'lantern' },
-    when: { tech: { anim: { mode: 'loop', fps: 5 } } },
+    // lit at dusk: the flame gutters now and then (the light it throws is in `lights` below)
+    when: { tech: { anim: { mode: 'flicker', fps: 3 } } },
   },
   { id: 'canopy', sprite: 'canopy', z: 52, depth: 0.75, at: [0, 0] },
 
@@ -105,30 +106,132 @@ const layers: Layer[] = [
   },
   { id: 'tray', sprite: 'tray', z: 65, depth: 1, at: [196, 168] },
   { id: 'clutter', sprite: 'clutter', z: 66, depth: 1, at: [130, 181], when: { tech: { anim: { mode: 'loop', fps: 1 } } } },
+  // dusk: a mosquito coil smoulders at the front of the carpet
+  { id: 'coil', sprite: 'coil', in: ['tech'], z: 66, depth: 1, at: [172, 180] },
   { id: 'side-table', sprite: 'side-table', z: 67, depth: 1, at: [254, 162] },
+  // The tablet prop. On wide screens the site menu is laid over the top of its screen (see hotspots);
+  // the cursor waits on the line below, which is what keeps the prop alive on every screen.
   { id: 'tablet', sprite: 'tablet', z: 68, depth: 1, at: [236, 148] },
+  { id: 'cursor', sprite: 'cursor', z: 69, depth: 1, at: [1, 22], attachTo: { layer: 'tablet', point: 'screen' }, anim: { mode: 'loop', fps: 2 } },
 
   // Foreground: nearest to the eye, so it moves the most.
   { id: 'tulips', sprite: 'tulips', z: 80, depth: 1.15, at: [42, 200] },
   ...tufts.map((at, i): Layer => ({ id: `tuft-${i}`, sprite: 'tuft', z: 80, depth: 1.15, at })),
 ];
 
+// Things in the air. All of it is meant to be noticed second, not first: few, small and slow.
 const emitters: Emitter[] = [
-  { id: 'petals', in: ['creative'], sprite: 'petal', z: 70, depth: 0.9, area: [10, 40, 180, 50], rate: 0.8, life: [9, 14], velocity: [3, 7], jitter: [2, 2], wobble: { by: 3, period: 4 }, fps: 3 },
-  { id: 'leaves', in: ['tech'], sprite: 'leaf', z: 70, depth: 0.9, area: [10, 40, 180, 50], rate: 0.12, life: [9, 14], velocity: [2, 8], jitter: [1, 2], wobble: { by: 2, period: 5 }, fps: 2 },
-  { id: 'steam', in: ['creative'], sprite: 'steam', z: 69, depth: 1, area: [0, 0, 1, 1], from: { layer: 'tray', point: 'steam' }, rate: 0.7, life: [1.5, 2.5], velocity: [0, -4], jitter: [1, 1], fps: 2 },
-  { id: 'fireflies', in: ['tech'], sprite: 'firefly', z: 70, depth: 0.9, area: [60, 120, 220, 60], rate: 0.5, life: [5, 9], velocity: [0, -1], jitter: [3, 2], wobble: { by: 4, period: 6 }, fps: 3 },
-  { id: 'glints', sprite: 'glint', z: 45, depth: 0.5, area: [150, 141, 94, 8], rate: 1.2, life: [0.6, 1], velocity: [0, 0], fps: 4 },
+  // creative: blossom coming down from the canopy on a light breeze
+  {
+    id: 'petals',
+    in: ['creative'],
+    sprite: 'petal',
+    z: 70,
+    depth: 0.9,
+    count: 12,
+    area: [20, 62, 170, 26],
+    move: { kind: 'drift', velocity: [2.5, 7], jitter: [1.5, 1.2], life: [11, 14], gap: [0, 2.5], wobble: { by: 3, period: 4 } },
+    anim: { mode: 'loop', fps: 2 },
+  },
+  // tech: the odd leaf
+  {
+    id: 'leaves',
+    in: ['tech'],
+    sprite: 'leaf',
+    z: 70,
+    depth: 0.9,
+    count: 1,
+    area: [30, 62, 150, 26],
+    move: { kind: 'drift', velocity: [1.5, 8], jitter: [1, 1], life: [10, 13], gap: [9, 20], wobble: { by: 2, period: 5 } },
+    anim: { mode: 'loop', fps: 1.5 },
+  },
+  // creative: steam off the coffee
+  {
+    id: 'steam',
+    in: ['creative'],
+    sprite: 'steam',
+    z: 69,
+    depth: 1,
+    count: 3,
+    area: [-1, -1, 2, 1],
+    from: { layer: 'tray', point: 'steam' },
+    move: { kind: 'drift', velocity: [0.4, -3.2], jitter: [0.3, 0.6], life: [2.6, 3.4], gap: [0.2, 1.2], wobble: { by: 1, period: 2.6 } },
+    anim: 'life',
+  },
+  // tech: a thread of smoke from the mosquito coil
+  {
+    id: 'smoke',
+    in: ['tech'],
+    sprite: 'smoke',
+    z: 69,
+    depth: 1,
+    count: 2,
+    area: [0, -1, 1, 1],
+    from: { layer: 'coil', point: 'tip' },
+    move: { kind: 'drift', velocity: [0.5, -2.6], jitter: [0.3, 0.4], life: [4.5, 6], gap: [0, 0.8], wobble: { by: 1.5, period: 3.4 } },
+    anim: 'life',
+  },
+  // tech: fireflies low over the lawn, each glowing up now and then. They pass behind the carpet and whoever is on it.
+  {
+    id: 'fireflies',
+    in: ['tech'],
+    sprite: 'firefly',
+    z: 59,
+    depth: 0.9,
+    count: 5,
+    area: [112, 136, 150, 22],
+    move: { kind: 'wander', reach: [10, 5], period: [9, 17] },
+    anim: { mode: 'random-hold', fps: 5, every: 4.5 },
+  },
+  // tech: two moths round the lit lantern
+  {
+    id: 'moths',
+    in: ['tech'],
+    sprite: 'moth',
+    z: 53,
+    depth: 0.75,
+    count: 2,
+    area: [0, 0, 0, 0],
+    from: { layer: 'lantern', point: 'flame' },
+    move: { kind: 'orbit', radius: [9, 5], period: [5, 8] },
+    anim: { mode: 'loop', fps: 6 },
+  },
+  // both: light catching the water, in the rill either side of the pool and in the pool itself
+  ...(
+    [
+      ['rill', 'rill', [0, 0, 46, 2], 2],
+      ['pool', 'pool', [1, 1, 24, 7], 2],
+      ['tail', 'rill', [75, 0, 19, 2], 1],
+    ] as const
+  ).map(
+    ([name, point, area, count]): Emitter => ({
+      id: `glints-${name}`,
+      sprite: 'glint',
+      z: 45,
+      depth: 0.5,
+      count,
+      area: [...area],
+      from: { layer: 'water', point },
+      move: { kind: 'drift', velocity: [0, 0], life: [0.7, 1.1], gap: [2, 6] },
+      anim: 'life',
+    }),
+  ),
+];
+
+const lights: Light[] = [
+  // dusk: the pool of light under the lantern, on the carpet and the lawn round it; it dips when the flame does
+  { in: ['tech'], at: [176, 173], radius: [46, 14], depth: 1, flame: { layer: 'lantern', strength: [1, 0.94, 0.97] } },
 ];
 
 const hotspots: Hotspot[] = [
-  // The tablet prop's screen: the site menu's real links are laid over it.
-  { id: 'menu', layer: 'tablet', point: 'screen', size: [18, 26] },
+  // The tablet prop's screen, down to the line the cursor waits on: the site menu's real links are laid over it.
+  { id: 'menu', layer: 'tablet', point: 'screen', size: [18, 21] },
 ];
 
 export const scene: Scene = {
   layers,
   emitters,
+  lights,
   hotspots,
   backdrop: {
     creative: {

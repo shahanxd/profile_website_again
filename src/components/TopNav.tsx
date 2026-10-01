@@ -9,7 +9,8 @@ export function TopNav() {
   const items = navFor(split);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-40 bg-bg/85 backdrop-blur-sm">
+    // data-dissolve: the bar lies over the hero but belongs to the page, so the split dissolve covers it (see DissolveOverlay)
+    <header data-dissolve="cover" className="fixed inset-x-0 top-0 z-40 bg-bg/85 backdrop-blur-sm">
       <div className="page flex h-16 items-center justify-between gap-4">
         <a href="#top" className="font-display text-xl lowercase text-ink no-underline">
           {site.owner.name}

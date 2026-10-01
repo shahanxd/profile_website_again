@@ -370,7 +370,8 @@ add('kite-b.creative', kite('turquoise', 'cream'), { anchor: [3, 3] });
   rect(c, 47, 8, 26, 2, 'teal');
   hline(c, 46, 11, 28, 'marbleshade');
   for (const [x, y] of [[8, 5], [21, 6], [35, 5], [52, 3], [60, 5], [67, 2], [81, 6], [88, 5]]) hline(c, x, y, 2, 'sparkle');
-  add('water', c, { points: { jet: [60, 9] } });
+  // "rill" and "pool" mark the top-left of each stretch of open water, for the glints
+  add('water', c, { points: { jet: [60, 9], rill: [0, 5], pool: [47, 1] } });
 
   // a one-pixel jet with drops falling away from its head
   const jet = [[[1, 2], [3, 2]], [[0, 3], [4, 3]], [[0, 5], [4, 5]], [[1, 8], [3, 8]]].map((drops, f) => {
@@ -479,8 +480,13 @@ function lantern(lit, frame) {
   vline(c, 3, 16, 2, lit ? 'oxblood' : 'madder'); // tassel
   return c;
 }
-add('lantern.creative', lantern(false, 0), { anchor: [3, 0] });
-add('lantern.tech', [lantern(true, 0), lantern(true, 1), lantern(true, 2)], { anchor: [3, 0], emissive: true });
+// "flame" is the middle of the glass: the moths circle it
+add('lantern.creative', lantern(false, 0), { anchor: [3, 0], points: { flame: [3, 10] } });
+add('lantern.tech', [lantern(true, 0), lantern(true, 1), lantern(true, 2)], {
+  anchor: [3, 0],
+  points: { flame: [3, 10] },
+  emissive: true,
+});
 
 // ----------------------------------------------------------------------- lawn
 
@@ -750,13 +756,33 @@ function rover(on) {
 add('clutter.tech', [rover(true), rover(false)], { anchor: [0, 9], emissive: true });
 
 {
-  // The tablet prop. Its screen is one flat lit colour because the site menu's
-  // real links are laid over it; "screen" marks the screen's top-left corner.
+  // tech: a mosquito coil on its stand, seen from a low angle, the lit end glowing. "tip" is where the smoke starts.
+  const c = C(7, 5);
+  hline(c, 1, 0, 5, 'leaf');
+  hline(c, 1, 3, 5, 'leaf');
+  vline(c, 0, 1, 2, 'leaf');
+  vline(c, 6, 1, 2, 'leaf');
+  hline(c, 2, 2, 2, 'leaf');
+  put(c, 4, 2, 'ember');
+  hline(c, 2, 4, 3, 'brasssh');
+  add('coil.tech', c, { anchor: [0, 5], points: { tip: [4, 2] }, emissive: true });
+}
+
+{
+  // The tablet prop. "screen" marks the screen's top-left corner. On wide
+  // screens the page covers the top 21 rows of the screen with the real menu,
+  // so the lines of writing here are only seen where that menu is not shown.
+  // The cursor is a separate sprite, placed on the row below them.
   const c = C(22, 30);
   rect(c, 0, 0, 22, 30, 'plum');
   for (const [x, y] of [[0, 0], [21, 0], [0, 29], [21, 29]]) put(c, x, y, null);
   rect(c, 2, 2, 18, 26, 'cream');
+  [8, 11, 6, 9].forEach((length, row) => hline(c, 4, 5 + row * 5, length, 'taupe'));
   add('tablet', c, { points: { screen: [2, 2] }, emissive: true });
+
+  const on = C(2, 3);
+  rect(on, 0, 0, 2, 3, 'plum');
+  add('cursor', [on, C(2, 3)]);
 
   const table = C(18, 16);
   hline(table, 2, 0, 14, 'sandlight');
@@ -818,18 +844,38 @@ add('clutter.tech', [rover(true), rover(false)], { anchor: [0, 9], emissive: tru
     [[1, 0, 'leaf'], [1, 1, 'deepleaf'], [1, 2, 'deepleaf']],
   ]), { anchor: [1, 1] });
 
-  add('firefly.tech', dots(3, 3, [
-    [[1, 1, 'brass']],
-    [[1, 1, 'lanterngold']],
-    cross('cream', 'lanterngold'),
-    [[1, 1, 'lanterngold']],
-  ]), { anchor: [1, 1], emissive: true });
+  // A firefly rests as one dim pixel, then glows up and fades: the last step out is a loose ring, not a solid one.
+  const glow = cross('cream', 'mint').map(([x, y, name]) => [x + 1, y + 1, name]);
+  const ring = [[2, 0], [0, 2], [4, 2], [2, 4]].map(([x, y]) => [x, y, 'duskgrasslt']);
+  add('firefly.tech', dots(5, 5, [
+    [[2, 2, 'duskgrasslt']],
+    [[2, 2, 'mint']],
+    glow,
+    [...glow, ...ring],
+    glow,
+    [[2, 2, 'mint']],
+  ]), { anchor: [2, 2], emissive: true });
 
+  // A moth is two wing beats.
+  add('moth.tech', dots(3, 3, [
+    [[0, 0, 'moonlight'], [2, 0, 'moonlight'], [1, 1, 'moonstone']],
+    [[0, 1, 'moonlight'], [2, 1, 'moonlight'], [1, 1, 'moonstone']],
+  ]), { anchor: [1, 1] });
+
+  // Steam and smoke thin out over their frames; the engine plays each strip once per wisp.
   add('steam.creative', dots(3, 5, [
-    [[1, 4, 'parchment'], [1, 3, 'parchment'], [2, 2, 'parchment']],
-    [[1, 3, 'parchment'], [0, 2, 'parchment'], [1, 1, 'parchment']],
-    [[2, 2, 'parchment'], [1, 1, 'parchment'], [1, 0, 'parchment']],
+    [[1, 4, 'parchment'], [1, 3, 'parchment']],
+    [[1, 4, 'parchment'], [2, 3, 'parchment'], [1, 2, 'parchment']],
+    [[0, 3, 'parchment'], [1, 1, 'parchment']],
+    [[1, 2, 'parchment']],
   ]), { anchor: [1, 5] });
+
+  add('smoke.tech', dots(3, 6, [
+    [[1, 5, 'moonstone'], [1, 4, 'moonstone']],
+    [[1, 5, 'moonstone'], [2, 4, 'moonstone'], [1, 3, 'moonstone'], [1, 2, 'moonstone']],
+    [[2, 4, 'moonstone'], [0, 2, 'moonstone'], [1, 1, 'moonstone']],
+    [[1, 3, 'moonstone'], [0, 0, 'moonstone']],
+  ]), { anchor: [1, 6] });
 
   add('glint.creative', dots(3, 3, [[[1, 1, 'gold']], cross('cream', 'gold'), [[1, 1, 'cream']]]), {
     anchor: [1, 1],

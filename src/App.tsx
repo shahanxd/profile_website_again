@@ -7,6 +7,7 @@ import { Band } from './sections/Band';
 import { Contact, Footer } from './sections/Contact';
 import { CreativeProof, TechProof } from './sections/Proof';
 import { Section } from './sections/Section';
+import { DissolveOverlay } from './split/DissolveOverlay';
 import { CreativeWork, TechWork } from './sections/Work';
 import { useSplit } from './split/store';
 
@@ -41,6 +42,7 @@ export function App() {
         </Section>
       </main>
       <Footer name={site.owner.name} city={site.owner.city} />
+      <DissolveOverlay />
     </>
   );
 }

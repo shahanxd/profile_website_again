@@ -5,16 +5,17 @@
 // Nothing about the layout is repeated here. The script loads the same
 // manifest, the same staging code and the same backdrop code as the engine
 // (Node runs the TypeScript files directly) and paints the engine's own
-// instance list for time 0 with the pointer at rest. That is the engine's
-// first frame, so the canvas can replace the poster without anything moving.
+// instance list for time 0 with the pointer at rest and nothing in the air.
+// That is the engine's still frame, and its first frame but for the
+// particles, so the canvas can replace the poster without anything moving.
 //
 // Run after pack-atlas: it reads public/art/atlas.png and atlas.json.
 import sharp from 'sharp';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { backdropStrip, STRIP_WIDTH } from '../src/hero/engine/backdrop.ts';
-import { buildStage, INSTANCE_SIZE, writeInstances } from '../src/hero/engine/stage.ts';
+import { backdropStrip, BAYER8, STRIP_WIDTH } from '../src/hero/engine/backdrop.ts';
+import { buildStage, inLight, INSTANCE_SIZE, LIGHT_SIZE, writeInstances, writeLight } from '../src/hero/engine/stage.ts';
 import { framing } from '../src/hero/scene/framing.ts';
 import { scene } from '../src/hero/scene/manifest.ts';
 
@@ -41,18 +42,24 @@ for (const split of ['creative', 'tech']) {
     }
   }
 
-  // sprites, back to front, as the sprite shader draws them
+  // sprites, back to front, as the sprite shader draws them: where lamplight
+  // falls, a sprite shows its daylight texel instead
   const stage = buildStage(scene, split, atlas);
   if (stage.missing.length) throw new Error(`poster-${split}: no sprite for ${stage.missing.join(', ')}`);
-  const instances = new Int16Array(stage.items.length * INSTANCE_SIZE);
+  const instances = new Int16Array(stage.capacity * INSTANCE_SIZE);
+  const light = new Int32Array(LIGHT_SIZE);
   const count = writeInstances(stage, 0, [0, 0], [0, top], instances);
+  writeLight(stage, 0, [0, 0], [0, top], light);
   for (let i = 0; i < count; i++) {
-    const [dx, dy, w, h, u, v] = instances.subarray(i * INSTANCE_SIZE, (i + 1) * INSTANCE_SIZE);
+    const [dx, dy, w, h, u, v, dayU, dayV] = instances.subarray(i * INSTANCE_SIZE, (i + 1) * INSTANCE_SIZE);
     for (let y = Math.max(0, -dy); y < h && dy + y < height; y++) {
       for (let x = Math.max(0, -dx); x < w && dx + x < width; x++) {
-        const from = ((v + y) * atlasWidth + u + x) * 4;
+        const px = dx + x;
+        const py = dy + y;
+        const lit = inLight(light, px, py, BAYER8[((py - light[1]) & 7) * 8 + ((px - light[0]) & 7)]);
+        const from = (((lit ? dayV : v) + y) * atlasWidth + (lit ? dayU : u) + x) * 4;
         if (texels[from + 3] < 128) continue;
-        out.set(texels.subarray(from, from + 3), ((dy + y) * width + dx + x) * 3);
+        out.set(texels.subarray(from, from + 3), (py * width + px) * 3);
       }
     }
   }

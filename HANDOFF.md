@@ -10,7 +10,7 @@ A profile site for Shahan (@shahanxd) with exactly two sides, **creative** and *
 
 Milestone 1 (foundation) is done. Milestones are listed in `docs/PLAN.md`.
 
-**The latest commits on `dev` are work-in-progress snapshots** taken while two background agents were still building: the hero engine (its second stage, behaviour, was mid-edit, so `npm run typecheck` fails in `src/hero/engine` and `src/hero/scene`) and the art clean-up tooling (built, under review). `main` still points at the last commit that passes `npm run check`. Do not treat the engine as finished until a later commit says the check passes.
+**The engine commits on `dev` are snapshots of work still in progress.** Two background agents are building the hero engine (now in its behaviour stage: particles, the split dissolve, the tablet menu) and reviewing the art clean-up tooling. At the latest commit `npm run check` passes and all 50 grey-box sprites pass `node tools/art/pixelize.mjs check`, but nobody has yet reviewed the engine in a browser, so `main` still points at the foundation commit.
 
 Working now:
 
@@ -25,7 +25,9 @@ In progress (see the note above):
 - `scripts/make-greybox.mjs`, `pack-atlas.mjs`, `make-posters.mjs` (`npm run art:build`): grey-box placeholder sprites in `art/sprites/`, packed to `public/art/atlas.*`, with a poster per split.
 - `tools/art/pixelize.mjs` and `tools/art/lib/`: the clean-up pipeline for generated art, with synthetic fixtures in `art/fixtures/` and usage in `art/README.md`.
 
-Not built yet: the page-wide dissolve overlay, the tablet menu and glass pill, all section motion, real art, real copy.
+- `src/split/DissolveOverlay.tsx` (page-wide pixel dissolve) and `src/hero/TabletMenu.tsx` (links over the tablet prop) exist as first versions, unreviewed.
+
+Not built yet: the glass pill menu, all section motion, real art in the scene, real copy.
 
 ## Next steps, in order
 

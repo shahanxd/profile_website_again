@@ -1,16 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { Text } from '../components/Text';
 import { site } from '../content/site';
+import { BLOCK, COVER_MS, heldDissolve, originFor, REVEAL_MS, selfDissolving, TOTAL_MS } from '../split/dissolve';
 import { getSplitState, useSplit } from '../split/store';
 import type { GardenEngine } from './engine';
 import { frameView, watchDeviceSize } from './engine/camera';
 import { framing } from './scene/framing';
+import { MENU_MIN_WIDTH, TabletMenu, type MenuBox } from './TabletMenu';
 import './hero.css';
 
 const percent = (fraction: number) => `${fraction * 100}%`;
 
-// framing.ts, handed to hero.css so the scene is already in place before any script runs.
-const framingVars = {
+// framing.ts and the switch timings, handed to hero.css so the scene is already in place before any script runs.
+const heroVars = {
   '--world-w': framing.world[0],
   '--poster-h': framing.poster.height,
   '--focus-x': framing.focus[0],
@@ -24,6 +26,8 @@ const framingVars = {
   '--port-y': percent(framing.portrait.target[1]),
   '--port-from': framing.portrait.span[0],
   '--port-to': framing.portrait.span[1],
+  '--cover-ms': `${COVER_MS}ms`,
+  '--reveal-ms': `${REVEAL_MS}ms`,
 } as CSSProperties;
 
 /**
@@ -37,6 +41,7 @@ function placeScene(hero: HTMLElement, poster: HTMLImageElement, canvas: HTMLCan
   hero.style.setProperty('--k', `${cssPerArt}px`);
   poster.style.left = `${-view.x * cssPerArt}px`;
   poster.style.top = `${(framing.poster.top - view.y) * cssPerArt}px`;
+  selfDissolving.cell = BLOCK * cssPerArt; // the page overlay matches its cells to the garden's dissolve blocks
 }
 
 /** Runs `work` once the browser has painted a frame. Returns a way to call it off. */
@@ -54,39 +59,56 @@ function afterPaint(work: () => void): () => void {
  * replaces the poster once it has a frame. Without WebGL2 the poster stays.
  */
 export function Hero() {
-  const { split, motion } = useSplit();
+  const { split, motion, phase, target, origin } = useSplit();
   const hero = site[split].hero;
   const sectionRef = useRef<HTMLElement>(null);
   const posterRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GardenEngine | null>(null);
-  const onScreen = useRef(true);
   const [live, setLive] = useState(false);
-
-  // The scene runs only while it can be seen, and not at all for visitors who have asked for stillness.
-  const syncPaused = () => engineRef.current?.setPaused(!onScreen.current || !getSplitState().motion);
+  // Where the tablet prop's screen is, when it is big enough to carry the menu.
+  const [menu, setMenu] = useState<MenuBox | null>(null);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current!;
-    return watchDeviceSize(canvas, (w, h) => placeScene(sectionRef.current!, posterRef.current!, canvas, w, h));
+    selfDissolving.element = canvas;
+    const stop = watchDeviceSize(canvas, (w, h) => placeScene(sectionRef.current!, posterRef.current!, canvas, w, h));
+    return () => {
+      stop();
+      selfDissolving.element = null;
+    };
   }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
     let gone = false;
     const cleanups: (() => void)[] = [];
+    // While the canvas is live the garden dissolves itself on a split switch; otherwise the page overlay covers the poster.
+    const onLive = (now: boolean) => {
+      selfDissolving.live = now;
+      setLive(now);
+    };
 
     // The poster and the copy are on screen before the engine is even requested.
     const cancelStart = afterPaint(async () => {
       try {
         const { createGardenEngine } = await import('./engine');
         if (gone) return;
-        const engine = await createGardenEngine(canvas, { split: getSplitState().split, onLive: setLive });
+        const held = heldDissolve(getSplitState().split); // the ?dissolve= switch
+        const start = held?.from ?? getSplitState().split;
+        const engine = await createGardenEngine(canvas, { split: start, motion: getSplitState().motion, onLive });
         if (gone) return engine.destroy();
         engineRef.current = engine;
         cleanups.push(() => engine.destroy());
-        engine.setSplit(getSplitState().split); // in case it changed while the atlas was loading
-        syncPaused();
+        // Catch up with anything that changed while the atlas was loading.
+        if (held) engine.transition(held.to, originFor(held.to, null), TOTAL_MS);
+        else engine.setSplit(getSplitState().split);
+        engine.setMotion(getSplitState().motion);
+
+        engine.onLayout(({ hotspots }) => {
+          const next = hotspots.menu && hotspots.menu[2] >= MENU_MIN_WIDTH ? hotspots.menu : null;
+          setMenu((was) => (was && next && was.every((value, i) => value === next[i]) ? was : next));
+        });
 
         // Layers follow a mouse. Touch is left alone: a finger on the scene is someone scrolling.
         const follow = (event: PointerEvent) => {
@@ -102,29 +124,36 @@ export function Hero() {
       }
     });
 
-    const watcher = new IntersectionObserver(([entry]) => {
-      onScreen.current = entry.isIntersecting;
-      syncPaused();
-    });
-    watcher.observe(sectionRef.current!);
-
     return () => {
       gone = true;
       cancelStart();
-      watcher.disconnect();
       cleanups.forEach((cleanup) => cleanup());
       engineRef.current = null;
-      setLive(false);
+      onLive(false);
+      setMenu(null);
     };
   }, []);
 
+  // A switch with a cover and a reveal is one dissolve in the garden, start to finish. Anything else is a cut.
   useEffect(() => {
-    engineRef.current?.setSplit(split);
-    syncPaused();
-  }, [split, motion]);
+    const engine = engineRef.current;
+    if (!engine) return;
+    if (phase === 'covering' && target) engine.transition(target, originFor(target, origin), TOTAL_MS);
+    else if (phase === 'idle') engine.setSplit(split);
+  }, [split, phase, target, origin]);
+
+  useEffect(() => {
+    engineRef.current?.setMotion(motion);
+  }, [motion]);
 
   return (
-    <section ref={sectionRef} id="top" className="hero relative min-h-svh overflow-hidden bg-bg-2" style={framingVars}>
+    <section
+      ref={sectionRef}
+      id="top"
+      className="hero relative min-h-svh overflow-hidden bg-bg-2"
+      style={heroVars}
+      data-phase={phase}
+    >
       <div className="garden" aria-hidden="true">
         <img
           ref={posterRef}
@@ -137,10 +166,11 @@ export function Hero() {
         />
         <canvas ref={canvasRef} className="garden-canvas" style={{ visibility: live ? 'visible' : 'hidden' }} />
       </div>
-      <div className="hero-copy">
+      <div className="hero-copy hero-swap">
         <Text as="h1" copy={hero.line} className="lowercase" />
         <Text as="p" copy={hero.sub} />
       </div>
+      {live && menu && <TabletMenu split={split} box={menu} />}
     </section>
   );
 }
