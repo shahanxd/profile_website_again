@@ -17,6 +17,20 @@ Every generation is logged here: tool, settings, prompt, where the output went, 
 
 ## Key art, refined creative and dusk
 
-Prompts and settings are in `art/requests/02-key-art-refined-and-dusk.md` (GPT Image 2.5, editing from the previous image). Outputs: `creative-v2.png`, `tech-v1.png`. Status: requested.
+Prompts and settings are in `art/requests/02-key-art-refined-and-dusk.md` (GPT Image 2.5, editing from the previous image). Outputs: `creative-v2.png`, `tech-v1.png`.
+
+| Step | Output | Verdict |
+|---|---|---|
+| A, refined creative | `art/raw/keyart/creative-v2.png` (1088x608) | **Approved as the creative hero still.** Open sky top right, pavilion lower, kites low, tablet upright facing the viewer. |
+| B, dusk | `art/raw/keyart/tech-v1.png` | requested |
+
+## Reduction test on creative-v2 (352x198, nearest)
+
+- Fixed 48-colour master palette: mean OKLab error 0.043; visibly darker and muddier (olive lawn, noisy sky). Rejected for plates.
+- Palette fitted to the image, 96 colours, no dither: indistinguishable from full colour at site scale. **Use this.**
+
+## Creative layers
+
+Prompts and settings are in `art/requests/03-creative-layers.md` (plate, tree, foreground sheet; GPT Image 2.5 editing from creative-v2). Status: requested.
 
 Note: the owner's likeness came out right from the text description alone, so the photo has not been uploaded anywhere.

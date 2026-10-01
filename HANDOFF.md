@@ -65,7 +65,11 @@ Node 22.12 or newer is required (this machine has 24.19).
   - Canva's generator works from the agent but only returns a 200 px thumbnail and has no size or transparency controls; not used.
   - The owner said not to cut quality to save credits and will add credits when needed.
 - **Key-art bake-off result:** GPT Image 2.5 won over Nano Banana 2 (see `art/prompts.md`). The image holds up when downscaled straight to the site grid, so the plan is now to **cut the approved stills into layers** (plate, tree, character, parrot, cat, tray, table and tablet) instead of generating every element separately. This likely changes the world size from 400x200 to about 352x198 (a 16:9 still with parallax bleed around a 320x180 camera); adjust `src/hero/scene/framing.ts` when the art lands.
-- **Waiting on:** `art/requests/02-key-art-refined-and-dusk.md` (refined creative still with open sky top right and a viewer-facing tablet, then the dusk still).
+- **Creative still approved:** `art/raw/keyart/creative-v2.png`. The site grid is a 352x198 world (the 16:9 still reduced about 3.09x) with a 320x180 camera.
+- **Palette decision:** the hand-written 48-colour palette in `art/palette.json` makes the still muddy. Plates and sprites cut from the stills are quantised to a palette **fitted to the approved still** (about 96 colours, no dither). The dusk side comes from a generated dusk still, not from the `duskSwap` table. `art/palette.json` remains for code-authored pixel maps and the grey boxes only.
+- **Layer plan:** one background plate per split (tree and foreground things removed), the tree as its own layer, and foreground sprites (figure, parrot, cat, tray, table with tablet, lantern, kites). The painted sky replaces the procedural sky; the engine's procedural backdrop is only needed where a tall phone shows beyond the plate.
+- **Tablet menu:** in the approved still the tablet screen is about 12x16 art pixels (about 72x96 CSS px at 1080p), too small to hold readable links. Plan: the tablet is the menu's trigger and the glass panel opens beside it as its enlarged screen.
+- **Waiting on:** step B of request 02 (dusk still, `tech-v1.png`) and `art/requests/03-creative-layers.md` (plate, tree, foreground sheet).
 - Prompts used so far are logged in `art/prompts.md`.
 
 ## Open questions for the owner
