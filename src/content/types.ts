@@ -1,4 +1,3 @@
-import type { SplitId } from '../split/types';
 import type { sectionArt } from './sectionArt';
 
 /**
@@ -24,11 +23,11 @@ export const isDraft = (copy: Copy): boolean => typeof copy !== 'string';
 export type SlotId = 'about' | 'work' | 'proof' | 'contact';
 
 /**
- * A crop of the garden that stands in for a picture not supplied yet (the
+ * A view of the garden that stands in for a picture not supplied yet (the
  * Thumb component draws it in the staging of the split being shown). One of:
  * pavilion, pool, horizon, canopy, beds, lantern, carpet, sky, cypress, cat.
  */
-export type ThumbName = (typeof sectionArt)['creative']['thumbs'][number];
+export type ThumbName = keyof (typeof sectionArt)['creative']['views'];
 
 export interface Picture {
   src: string;
@@ -43,7 +42,7 @@ export interface LinkItem {
   href: string;
 }
 
-/** A number or fact shown as evidence. Unconfirmed ones are old or unverified; give them an asOf so they do not pose as current. */
+/** A number or fact shown as evidence. Unconfirmed ones are old or unverified; give them an asOf so they do not pose as current (the band says it once for all its numbers). */
 export interface Result {
   value: string;
   label: string;
@@ -68,13 +67,17 @@ export interface Project {
   thumb: ThumbName;
   /** A real screenshot, diagram or capture. */
   image?: Picture;
+  /** Said under a showcase's picture. While that picture is an illustration and not a capture, the caption says so. */
+  caption?: Copy;
 }
 
 export interface Achievement {
   title: Copy;
   detail?: Copy;
+  /** When it happened. Leave it out for a line that is still to come: it says "not yet". */
   year?: string;
   href?: string;
+  /** Its lamp is lit only once this is true (and there is a year): an unconfirmed line never shines as a result. */
   confirmed: boolean;
 }
 
@@ -90,6 +93,8 @@ export interface ShowcaseItem {
   /** The stand-in picture, shown until `image` (or a video) is supplied. */
   thumb: ThumbName;
   image?: Picture;
+  /** Said under the stand-in picture, where it could otherwise be taken for the piece's own art. */
+  standIn?: Copy;
   href?: string;
   tone?: 'plain';
   /** False until the owner supplies the real piece; until then the title says what will go here. */
@@ -142,5 +147,3 @@ export interface SiteContent {
   tech: TechContent;
   creative: CreativeContent;
 }
-
-export type ContentFor<S extends SplitId> = S extends 'tech' ? TechContent : CreativeContent;

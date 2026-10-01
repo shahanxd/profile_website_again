@@ -1,22 +1,27 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { site } from '../content/site';
 import type { NavItem, SlotId } from '../content/types';
-import { navFor } from '../content/visible';
 import { useHydrated } from '../motion/live';
 import { watch } from '../motion/watch';
 import { setMotion, useSplit } from '../split/store';
+import type { SplitId } from '../split/types';
 import { Glass } from './Glass';
 import { PixelButton } from './PixelButton';
 import { SplitSwitch } from './SplitSwitch';
 
-/** The section being read: the one that crosses a line just above the middle of the window. */
-function useActiveSlot(slots: SlotId[]): SlotId | null {
+/**
+ * The section being read: the one that crosses a line just above the middle
+ * of the window. Each split has its own sections under the same ids, so the
+ * watch starts again when the split changes.
+ */
+function useActiveSlot(slots: SlotId[], split: SplitId): SlotId | null {
   const [active, setActive] = useState<SlotId | null>(null);
   const key = slots.join(' ');
 
   useEffect(() => {
     const order = key.split(' ') as SlotId[];
     const crossing = new Set<SlotId>();
+    setActive(null);
     const stops = order.map((slot) => {
       const section = document.getElementById(slot);
       if (!section) return () => {};
@@ -31,7 +36,7 @@ function useActiveSlot(slots: SlotId[]): SlotId | null {
       );
     });
     return () => stops.forEach((stop) => stop());
-  }, [key]);
+  }, [key, split]);
 
   return active;
 }
@@ -77,19 +82,25 @@ function Links({ items, active, onPick }: { items: NavItem[]; active: SlotId | n
 }
 
 /**
- * The site menu, and the wordmark that returns to the top.
+ * The site menu, with the wordmark that returns to the top.
  *
- * On wide screens it is a small glass panel at the top right that reads as
- * the tablet's screen, enlarged: the split switch, the section links with the
- * one being read marked, and the motion switch. Once the hero has scrolled
- * away it folds into a slim pill. On phones it is a pill at the bottom with
- * the split switch and a button that opens the links as a sheet (a native
- * dialog, so focus and Escape behave).
+ * On wide screens it is one piece of glass that reads as the tablet in the
+ * garden, enlarged: the wordmark, the split switch, the section links with
+ * the one being read marked, and the motion switch. Over the hero it is two
+ * rows at the top left, in the tree, clear of the headline in the sky; once
+ * the hero has scrolled away it folds into one slim row at the top right.
+ * On narrower screens it is a pill at the bottom with the split switch and a
+ * button that opens the links as a sheet (a native dialog, so focus and
+ * Escape behave), and the wordmark is a chip of its own over the hero that
+ * goes when the hero does, so nothing opaque floats over the text.
  */
 export function Menu() {
   const { split } = useSplit();
-  const items = navFor(split);
-  const active = useActiveSlot(items.map((item) => item.slot));
+  const items = site[split].nav;
+  const active = useActiveSlot(
+    items.map((item) => item.slot),
+    split,
+  );
   const past = usePastHero();
   const sheet = useRef<HTMLDialogElement>(null);
   const close = () => sheet.current?.close();
@@ -97,10 +108,13 @@ export function Menu() {
   return (
     <>
       {/* data-dissolve: these lie over the hero but belong to the page, so the split dissolve covers them (see DissolveOverlay) */}
-      <a href="#top" className="wordmark step-1" data-dissolve="cover">
+      <a href="#top" className="wordmark step-1" data-gone={past ? '' : undefined} data-dissolve="cover">
         {site.owner.name}
       </a>
       <Glass as="nav" className="menu" aria-label="site" data-compact={past ? '' : undefined} data-dissolve="cover">
+        <a href="#top" className="menu-mark">
+          {site.owner.name}
+        </a>
         <SplitSwitch />
         <ul className="menu-links">
           <Links items={items} active={active} />

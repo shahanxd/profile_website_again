@@ -5,25 +5,25 @@ interface ResolveHeadingProps {
   copy: Copy;
   /** A phrase of the heading (exactly as written in it) to underline with a pen stroke. Keep it short: it does not wrap. */
   mark?: string;
-  as?: 'h2' | 'h3';
   id?: string;
   tabIndex?: number;
   className?: string;
 }
 
 /**
- * A heading that resolves out of dither the first time it scrolls into view,
- * after which the pen underlines one phrase. Whole from the start when it is
- * already on screen, with motion off, or with ?still=1.
+ * A section's heading (an h2): it resolves out of dither the first time it
+ * scrolls into view, after which the pen underlines one phrase. Whole from
+ * the start when it is already on screen, with motion off, or with ?still=1.
+ * Smaller headings do not resolve: one thing at a time asks to be looked at.
  */
-export function ResolveHeading({ copy, mark, as: Tag = 'h2', className, ...rest }: ResolveHeadingProps) {
+export function ResolveHeading({ copy, mark, className, ...rest }: ResolveHeadingProps) {
   const ref = useResolve<HTMLHeadingElement>();
   const text = copyText(copy);
   const at = mark ? text.indexOf(mark) : -1;
   const draft = import.meta.env.DEV && isDraft(copy);
 
   return (
-    <Tag ref={ref} className={className} data-draft={draft ? '' : undefined} title={draft ? 'draft copy' : undefined} {...rest}>
+    <h2 ref={ref} className={className} data-draft={draft ? '' : undefined} title={draft ? 'draft copy' : undefined} {...rest}>
       {!mark || at < 0 ? (
         text
       ) : (
@@ -36,7 +36,7 @@ export function ResolveHeading({ copy, mark, as: Tag = 'h2', className, ...rest 
           {text.slice(at + mark.length)}
         </>
       )}
-    </Tag>
+    </h2>
   );
 }
 

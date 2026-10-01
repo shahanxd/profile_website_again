@@ -1,0 +1,223 @@
+/*
+ * Styles for what both splits share below the hero: the small pixel glyphs,
+ * labels and rows, the toolkit, the contact links and the footer. Built on
+ * the primitives in src/styles/pixel.css and bound by the same rule: pixel
+ * things sit on the page pixel and move in steps, only under
+ * html[data-motion='on'].
+ */
+
+/* A small label in the pixel face: "toolkit", "the rest", "not yet". */
+.tag {
+  color: var(--accent);
+  font-family: var(--font-pixel);
+  font-size: var(--t-label);
+  letter-spacing: 0.03em;
+  line-height: 1;
+  text-transform: lowercase;
+}
+
+/* A row of short things parted by one page pixel: the toolkit, a project's
+ * stack. Each mark belongs to the item after it and sits in the gap before
+ * it; the row clips what lies left of its own edge, so however the row wraps,
+ * no line begins or ends with a mark. */
+.dotted-row {
+  --gap: calc(var(--px) * 7);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--gap);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+}
+
+.dotted-row > li {
+  position: relative;
+}
+
+.dotted-row > li::before {
+  content: '';
+  position: absolute;
+  left: calc((var(--gap) + var(--px)) / -2);
+  top: calc(50% - var(--px) / 2);
+  width: var(--px);
+  height: var(--px);
+  background: var(--accent-2);
+}
+
+/* --- Toolkit -------------------------------------------------------------------
+ * What the owner works with, as one row. The same on both sides. */
+.toolkit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-1) var(--s-3);
+  color: var(--ink-2);
+  font-size: var(--t-small);
+}
+
+/* --- Glyph ---------------------------------------------------------------------
+ * A drawing written out in letters (Glyph.tsx), one art pixel to a page pixel. */
+.glyph {
+  display: block;
+  flex: none;
+  width: calc(var(--w) * var(--px));
+  height: calc(var(--h) * var(--px));
+}
+
+/* --- Contact -------------------------------------------------------------------
+ * The ways to reach the owner, each a card that is one big link. */
+.contact-line {
+  max-width: 34ch;
+  color: var(--ink-2);
+  font-size: var(--t-lead);
+  line-height: 1.5;
+}
+
+.contact-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--px) * 64)), 1fr));
+  gap: var(--s-4);
+  margin: var(--s-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contact-links > li,
+.contact-links .pe {
+  height: 100%;
+}
+
+/* the link fills its card, so the whole card is the target and carries the focus ring */
+.contact-card {
+  padding: 0;
+}
+
+.contact-link {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-content: space-between;
+  gap: var(--s-5) var(--s-2);
+  height: 100%;
+  min-height: calc(var(--px) * 36);
+  padding: calc(var(--px) * 7);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.contact-link:focus-visible {
+  outline-offset: calc(var(--px) * -5);
+}
+
+.contact-label {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 1.6vw + 22px, 44px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: lowercase;
+}
+
+.contact-link .glyph {
+  color: var(--accent);
+}
+
+/* where the link goes, standing on dots that fill in with dashes, like every link here */
+.contact-where {
+  position: relative;
+  grid-column: 1 / -1;
+  padding-bottom: calc(var(--px) * 2);
+  overflow: hidden;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: var(--t-caption);
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contact-where::before,
+.contact-where::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--hair);
+  color: var(--accent);
+}
+
+.contact-where::before {
+  background: repeating-linear-gradient(to right, currentColor 0 var(--hair), transparent 0 var(--px));
+  opacity: 0.55;
+}
+
+.contact-where::after {
+  background: repeating-linear-gradient(to right, currentColor 0 calc(var(--px) * 2), transparent 0 calc(var(--px) * 3));
+  clip-path: inset(0 100% 0 0);
+}
+
+.contact-link:hover .contact-where::after,
+.contact-link:focus-visible .contact-where::after {
+  clip-path: inset(0);
+}
+
+/* the arrow takes one step out, the way it points */
+.contact-link:hover .glyph,
+.contact-link:focus-visible .glyph {
+  transform: translate(var(--px), calc(var(--px) * -1));
+}
+
+html[data-motion='on'] .contact-where::after {
+  transition: clip-path 360ms steps(9, end);
+}
+
+/* A way to reach the owner that is still to come: a quieter card, plainly a stand-in. */
+.contact-soon {
+  display: grid;
+  align-content: end;
+  height: 100%;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: var(--t-small);
+  line-height: 1.55;
+}
+
+/* --- Footer --------------------------------------------------------------------
+ * The cat on the edge of the carpet, a line of small print, and the flower
+ * bed the page stands on. The cat follows straight on from the last section's
+ * own space; the bed is the last thing on the page, so the page ends on the
+ * garden (on narrow screens the menu's pill floats over it). */
+.foot-cat {
+  display: flex;
+  justify-content: flex-end;
+  /* the cat sits into the carpet's top row, not on the air above it */
+  margin-bottom: calc(var(--px) * -1);
+  padding-right: calc(var(--px) * 22);
+}
+
+.foot-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-4);
+  padding-block: var(--s-4) var(--s-5);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: var(--t-caption);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+
+.foot-row p {
+  margin: 0;
+}
+
+@media (max-width: 767px) {
+  .foot-cat {
+    padding-right: calc(var(--px) * 10);
+  }
+}

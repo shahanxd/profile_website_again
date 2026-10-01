@@ -6,8 +6,9 @@
 // Output, all deterministic:
 //   public/art/sections/<staging>/band.png      the garden without its owner, for the scene band
 //   public/art/sections/<staging>/<sprite>.png  the cast as horizontal sprite strips
-//   public/art/sections/<staging>/thumb-*.png   crops of the garden that stand in for work not supplied yet
-//   public/art/sections/tiles/*.png             masks and patterns (ragged edges, seam, jali, kilim, arch, grain)
+//   public/art/sections/<staging>/garden.png    the whole garden without its owner: stand-in pictures are views of it
+//   public/art/sections/tiles/*.png             masks and patterns (ragged edges, seam, jali, kilim, arch, grain, flower bed)
+//   public/art/sections/favicon.png             the tab icon: the eight-rayed star, lit
 //   public/art/sections/index.json              what was made: sizes, frame counts, timings
 //   src/content/sectionArt.ts                   the same index, typed, for the components
 //   src/styles/dither.css                       the Bayer steps headings and blocks resolve through
@@ -193,6 +194,8 @@ async function loadStaging(staging) {
 
 /** Flame colours: red over green over blue. Keeps a dimmed flame from landing on a grey or a leaf green. */
 const isWarm = ([r, g, b]) => r >= g && g >= b && b <= g * 0.72;
+/** The bright yellow of sunlit grass, left on a rim where a cut-out kept a pixel of what was behind it. */
+const isGrassRim = ([r, g, b]) => r > 225 && g > 150 && b < 130;
 /** The pink left on a rim where the cut-out's magenta ground bled in. */
 const isPinkRim = ([r, g, b]) => r > 200 && b > 110 && g < 165;
 
@@ -240,6 +243,10 @@ const CAST = {
     // Sitting: the flank rises and falls, and an ear flicks.
     cat: ({ layers }) => {
       const base = pad(layers.cat.img, 1, 0);
+      // The cut-out kept a few pixels of the sunlit grass behind its chest and paws: each takes the fur beside it.
+      for (let y = 10; y < base.h; y++) {
+        for (let x = 1; x < base.w; x++) if (solid(base, x, y) && isGrassRim(get(base, x, y))) put(base, x, y, get(base, x - 1, y));
+      }
       const breath = growLeft(base, range(11, 22));
       const ear = shift(breath, [15, 0, 5, 2], -1, 0);
       return {
@@ -331,21 +338,55 @@ const CAST = {
     },
     tray: ({ layers }) => ({ at: [layers.tray.x, layers.tray.y], frames: [layers.tray.img], sequences: { idle: [[0, 1000]] } }),
     table: ({ layers }) => ({ at: [layers.table.x, layers.table.y], frames: [layers.table.img], sequences: { idle: [[0, 1000]] } }),
-    // Typing in bursts, with the parrot asleep on his shoulder, breathing.
+    // Typing in bursts, with the parrot asleep on his shoulder, breathing. He leans on the bolster, cut from the plate.
     figure: ({ layers }) => {
       const base = pad(layers.figure.img, 1, 0);
       const skin = ([r, g, b]) => r > 150 && r - b > 60 && g > 60;
       const type = (frame) => nudge(frame, [28, 34, 12, 6], 0, 1, skin);
       const breath = growLeft(base, range(12, 21));
-      const frames = [base, type(base), breath, type(breath)];
+      const cushion = bolster(layers.plate.img);
+      // The bolster lies behind him in the scene, a little up the carpet; here both rest on one line.
+      const lean = layers.figure.x - 1 - BOLSTER[0];
+      const frames = [base, type(base), breath, type(breath)].map((pose) => {
+        const frame = blank(lean + pose.w, pose.h);
+        blit(frame, cushion, 0, pose.h - cushion.h);
+        blit(frame, pose, lean, 0);
+        return frame;
+      });
       // One loop: the parrot breathes in and out every 3.6 s; the hands type, stop to think, type again.
       const typing = [1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0];
       const idle = typing.map((hands, tick) => [(tick % 30 < 15 ? 0 : 2) + hands, 120]);
-      return { at: [layers.figure.x - 1, layers.figure.y], frames, sequences: { idle: merge(idle) } };
+      return { at: [BOLSTER[0], layers.figure.y], frames, sequences: { idle: merge(idle) } };
     },
     cypress: ({ layers }) => cypress(layers.plate.img),
   },
 };
+
+/**
+ * The bolster on the carpet, cut from the dusk plate: a capsule lying on its
+ * side. Where it meets the lawn and the hedge its own outline is kept (it is
+ * the only warm thing there); along the carpet, which is as warm as it is,
+ * the capsule's curve is the edge.
+ */
+const BOLSTER = [14, 134, 67, 22];
+function bolster(plate) {
+  const [x0, y0, w, h] = BOLSTER;
+  const radius = h / 2;
+  const out = blank(w, h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const dx = Math.max(radius - (x + 0.5), x + 0.5 - (w - radius), 0);
+      const dy = y + 0.5 - radius;
+      const depth = radius - Math.hypot(dx, dy);
+      if (depth < 0) continue;
+      const pixel = get(plate, x0 + x, y0 + y);
+      const [r, g] = pixel;
+      // only the rim is tested for warmth: inside it, the cloth's dark folds are as green as they are red
+      if (depth > 2 || r > g + 12) put(out, x, y, pixel);
+    }
+  }
+  return out;
+}
 
 /** Joins neighbouring steps that show the same frame. */
 function merge(sequence) {
@@ -408,36 +449,37 @@ function cypress(plate) {
   return { at: [x0, y0], frames: [tree, shift(tree, [0, 0, tree.w, 9], 1, 0)], sequences: { idle: [[0, 2600], [1, 1400]] } };
 }
 
-// --- placeholder thumbnails ---------------------------------------------------
-// Crops of the garden, 112 x 70 art pixels each, all cut from the scene without
-// its owner. They stand in for videos, designs and screenshots not supplied yet.
-// Both stagings use the same names, so content can ask for one without knowing the split.
+// --- stand-in pictures -------------------------------------------------------
+// Pictures not supplied yet are views of the garden: one image of the whole
+// scene without its owner, and for each name the point of it a frame looks at
+// (art pixels). A frame shows as much around that point as it has room for, at
+// the page's own pixel size, so no stand-in is ever enlarged more than another.
+// Both stagings have every name, so content can ask for one without knowing the split.
 
-const THUMB = { w: 112, h: 70 };
-const THUMBS = {
+const VIEWS = {
   creative: {
-    pavilion: [156, 68],
-    pool: [170, 116],
-    horizon: [240, 52],
-    canopy: [36, 0],
-    beds: [238, 96],
-    lantern: [22, 22],
-    carpet: [56, 122],
-    sky: [200, 4],
-    cypress: [100, 58],
-    cat: [0, 124],
+    pavilion: [212, 104],
+    pool: [226, 150],
+    horizon: [296, 88],
+    canopy: [92, 36],
+    beds: [294, 130],
+    lantern: [78, 58],
+    carpet: [116, 156],
+    sky: [262, 40],
+    cypress: [158, 92],
+    cat: [26, 154],
   },
   tech: {
-    pavilion: [156, 68],
-    pool: [170, 116],
-    horizon: [232, 52],
-    canopy: [36, 0],
-    beds: [238, 96],
-    lantern: [22, 22],
-    carpet: [70, 124],
-    sky: [240, 4],
-    cypress: [100, 58],
-    cat: [0, 124],
+    pavilion: [212, 104],
+    pool: [226, 150],
+    horizon: [288, 88],
+    canopy: [92, 36],
+    beds: [294, 130],
+    lantern: [78, 58],
+    carpet: [128, 158],
+    sky: [296, 40],
+    cypress: [158, 92],
+    cat: [24, 158],
   },
 };
 
@@ -450,13 +492,13 @@ const THUMBS = {
 const BAND = {
   creative: {
     without: ['figure', 'parrot', 'tree', 'lantern', 'kite-a', 'kite-b'],
-    focus: [236, 116],
+    focus: [214, 116],
     glints: [[196, 152], [234, 150], [255, 154], [221, 157], [211, 136]],
     sparkles: [[225, 141], [228, 143], [223, 144], [227, 139]],
   },
   tech: {
     without: ['figure', 'tree', 'lantern'],
-    focus: [236, 112],
+    focus: [214, 112],
     glints: [[196, 152], [236, 151], [256, 155], [224, 157], [212, 138]],
     sparkles: [[225, 141], [228, 143], [223, 144]],
   },
@@ -590,11 +632,16 @@ const ARCH_EDGE = [18, 16, 14, 14, 10, 8, 7, 7, 9, 6, 4, 3, 3, 5, 3, 1, 0, 0, 2,
 const ARCH = { w: 20, h: ARCH_EDGE.length };
 const archTile = (mirrored) => mask(ARCH.w, ARCH.h, (x, y) => (mirrored ? ARCH.w - 1 - x : x) >= ARCH_EDGE[y]);
 
-/** Paper grain: patches of ordered dither, faint, in the scene's umber. Tiles. */
-function grainTile(colour) {
-  const size = 64;
-  const cells = 8;
-  const next = random(5);
+/**
+ * Paper grain: soft patches of ordered dither, faint, in the scene's umber.
+ * Two tiles of sizes that never line up are laid over each other, so the
+ * patches do not visibly repeat; each is a multiple of four, so the dither
+ * joins at its edges.
+ */
+const GRAIN = [76, 108];
+function grainTile(size, seed, colour) {
+  const cells = Math.round(size / 19);
+  const next = random(seed);
   const lattice = Array.from({ length: cells * cells }, () => next());
   const value = (x, y) => {
     const [fx, fy] = [(x / size) * cells, (y / size) * cells];
@@ -608,25 +655,31 @@ function grainTile(colour) {
   const out = blank(size, size);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const density = Math.max(0, value(x, y) - 0.46) * 0.8;
-      if (bayer4(x, y) / 16 < density) put(out, x, y, [...colour, 13]);
+      // never more than three pixels of sixteen: thicker dither shows its lattice
+      const density = Math.min(Math.max(0, value(x, y) - 0.5) * 0.7, 0.19);
+      if (bayer4(x, y) / 16 < density) put(out, x, y, [...colour, 9]);
     }
   }
   return out;
 }
 
-/** A patch of night sky: a few faint stars and one bright one, with rays in the larger tile. The two tiles are of sizes that never line up. */
+/**
+ * A patch of night sky. The faint tile is laid under the whole page: a few
+ * dim stars, never bright enough to read as a mark in a line of text. The
+ * bright tile, with its one rayed star, is shown only in the margins beside
+ * the page column. The two are of sizes that never line up.
+ */
 const STARS = [211, 307];
-function starsTile(size, count, seed, colours, rays) {
+function starsTile(size, count, seed, colours, bright) {
   const next = random(seed);
   const out = blank(size, size);
   for (let i = 0; i < count; i++) {
     const [x, y] = [2 + Math.floor(next() * (size - 4)), 2 + Math.floor(next() * (size - 4))];
     const colour = colours[Math.floor(next() * colours.length)];
-    // the first star of a tile is its one bright star; the rest are faint
-    const alpha = i === 0 ? 220 : [45, 70, 100, 140][Math.floor(next() * 4)];
+    const rayed = bright && i === 0;
+    const alpha = rayed ? 220 : (bright ? [70, 100, 140, 170] : [34, 46, 58, 70])[Math.floor(next() * 4)];
     put(out, x, y, [...colour, alpha]);
-    if (i === 0 && rays) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) put(out, x + dx, y + dy, [...colour, 60]);
+    if (rayed) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) put(out, x + dx, y + dy, [...colour, 60]);
   }
   return out;
 }
@@ -663,6 +716,46 @@ const KILIM = {
   tech: { field: hex('#98291c'), cream: hex('#fbdc9b'), indigo: hex('#262b69'), brass: hex('#ffd84d') },
 };
 
+/**
+ * The tulip bed and its clipped hedge, cut from the plate and mirrored so it
+ * tiles sideways: a strip of the garden to stand a section on. Above the
+ * leaves the wall shows through in the plate; those pixels are dropped, which
+ * leaves the bushes' own uneven tops.
+ */
+const BED = { x: 292, y: 121, w: 52, h: 30 };
+/** Out and back again, without repeating the column at either turn (a doubled column would show as a stripe). */
+const BED_TILE = BED.w * 2 - 2;
+function bedTile(plate, daylight) {
+  const out = blank(BED_TILE, BED.h);
+  for (let y = 0; y < BED.h; y++) {
+    for (let x = 0; x < BED.w; x++) {
+      // the wall is found on the daylight plate, where it is plainly red; both stagings share the geometry
+      const [r, g] = get(daylight, BED.x + x, BED.y + y);
+      if (y < 3 && r > g + 25) continue;
+      const pixel = get(plate, BED.x + x, BED.y + y);
+      put(out, x, y, pixel);
+      if (x > 0 && x < BED.w - 1) put(out, BED_TILE - x, y, pixel);
+    }
+  }
+  return out;
+}
+
+/** The tab icon: the section marker's eight-rayed star in lantern amber on the night sky, with stepped corners. 32 x 32. */
+function favicon() {
+  const [night, amber] = [hex('#14162e'), hex('#f6b35d')];
+  const star = starTile();
+  const out = blank(32, 32);
+  for (let y = 0; y < 32; y++) {
+    for (let x = 0; x < 32; x++) {
+      const corner = Math.min(x, 31 - x) + Math.min(y, 31 - y) < 2 || (Math.min(x, 31 - x) < 2 && Math.min(y, 31 - y) < 2);
+      if (corner) continue;
+      const [sx, sy] = [Math.floor((x - 5) / 2), Math.floor((y - 5) / 2)];
+      put(out, x, y, solid(star, sx, sy) && x >= 5 && y >= 5 ? amber : night);
+    }
+  }
+  return out;
+}
+
 /** The steps a heading resolves through: how many of a 4 x 4 Bayer tile's sixteen pixels show at each. */
 const DITHER_STEPS = [2, 4, 6, 8, 10, 12, 14];
 
@@ -670,11 +763,12 @@ const DITHER_STEPS = [2, 4, 6, 8, 10, 12, 14];
 
 await rm(outDir, { recursive: true, force: true });
 
-const index = { thumb: THUMB, tiles: {} };
+const index = { tiles: {} };
+const daylight = (await loadStaging('creative')).layers.plate.img;
 
 for (const staging of ['creative', 'tech']) {
   const scene = await loadStaging(staging);
-  const entry = { band: null, sprites: {}, thumbs: [] };
+  const entry = { band: null, garden: null, views: VIEWS[staging], sprites: {} };
 
   for (const [name, build] of Object.entries(CAST[staging])) {
     const { at, frames, sequences } = build(scene);
@@ -683,11 +777,8 @@ for (const staging of ['creative', 'tech']) {
     entry.sprites[name] = { src: `${staging}/${name}.png`, w, h, frames: frames.length, at, sequences };
   }
 
-  const garden = scene.compose(['figure', 'parrot']);
-  for (const [name, [x, y]] of Object.entries(THUMBS[staging])) {
-    await save(crop(garden, x, y, THUMB.w, THUMB.h), `${staging}/thumb-${name}.png`);
-    entry.thumbs.push(name);
-  }
+  await save(scene.compose(['figure', 'parrot']), `${staging}/garden.png`);
+  entry.garden = { src: `${staging}/garden.png`, w: scene.layout.grid.w, h: scene.layout.grid.h };
 
   const band = BAND[staging];
   await save(scene.compose(band.without), `${staging}/band.png`);
@@ -702,6 +793,7 @@ for (const staging of ['creative', 'tech']) {
   };
 
   await save(kilimTile(KILIM[staging]), `tiles/kilim-${staging}.png`);
+  await save(bedTile(scene.layers.plate.img, daylight), `tiles/bed-${staging}.png`);
   index[staging] = entry;
 }
 
@@ -713,9 +805,11 @@ await save(starTile(), 'tiles/star.png');
 await save(sparkTile(), 'tiles/spark.png');
 await save(archTile(false), 'tiles/arch-left.png');
 await save(archTile(true), 'tiles/arch-right.png');
-await save(grainTile(hex('#5b2e15')), 'tiles/grain.png');
-await save(starsTile(STARS[0], 17, 3, [hex('#fef7d8'), hex('#c7c6f9')], false), 'tiles/stars-a.png');
+await save(grainTile(GRAIN[0], 5, hex('#5b2e15')), 'tiles/grain-a.png');
+await save(grainTile(GRAIN[1], 9, hex('#5b2e15')), 'tiles/grain-b.png');
+await save(starsTile(STARS[0], 9, 3, [hex('#fef7d8'), hex('#c7c6f9')], false), 'tiles/stars-a.png');
 await save(starsTile(STARS[1], 24, 8, [hex('#fef7d8'), hex('#fbdc9b'), hex('#c7c6f9')], true), 'tiles/stars-b.png');
+await save(favicon(), 'favicon.png');
 
 index.tiles = {
   edge: { depth: EDGE, top: EDGES.top.along, right: EDGES.right.along, bottom: EDGES.bottom.along, left: EDGES.left.along },
@@ -725,7 +819,8 @@ index.tiles = {
   spark: { w: 7, h: 7 },
   arch: ARCH,
   kilim: { w: 16, h: 11 },
-  grain: { w: 64, h: 64 },
+  bed: { w: BED_TILE, h: BED.h },
+  grain: GRAIN,
   stars: STARS,
 };
 

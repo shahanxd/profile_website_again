@@ -1,7 +1,7 @@
-import { useEffect, useRef, type CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
 import type { Copy, Result } from '../content/types';
 import { devMark, isPlaceholder } from '../content/visible';
-import { watch } from '../motion/watch';
+import { useOnScreen } from '../motion/watch';
 import { useSplit } from '../split/store';
 import { artUrl, bandArt } from './art';
 import { Glass } from './Glass';
@@ -39,53 +39,51 @@ const LABEL = {
  * with the headline numbers on a glass panel. A few things in it are alive
  * (the fountain, glints on the water, kites by day, fireflies and a window or
  * two going dark by night), and all of it rests while the band is off
- * screen. Its top and bottom edges break up into the page.
+ * screen. Its top and bottom edges break up into the page. On a phone the
+ * panel sits across the picture's foot and runs on below it, so the pavilion
+ * and the pool stay in view.
  */
 export function SceneBand({ line, numbers }: { line: Copy; numbers: Result[] }) {
   const { split } = useSplit();
   const band = bandArt(split);
-  const ref = useRef<HTMLElement>(null);
-
   // The stylesheet runs the band's little loops only while it carries data-on.
-  useEffect(() => {
-    const element = ref.current!;
-    return watch(element, (visible) => {
-      if (visible) element.dataset.on = '';
-      else delete element.dataset.on;
-    });
-  }, []);
+  const ref = useOnScreen<HTMLElement>();
+  // old figures say when they were counted, once for the whole panel
+  const asOf = [...new Set(numbers.flatMap((number) => number.asOf ?? []))];
 
   return (
     <section ref={ref} aria-label="in numbers" className="band">
-      <div
-        className="band-stage"
-        role="img"
-        aria-label={LABEL[split]}
-        style={{ '--focus-x': band.focus[0], '--focus-y': band.focus[1] } as CSSProperties}
-      >
-        <img src={artUrl(band.src)} width={band.w} height={band.h} alt="" loading="lazy" decoding="async" draggable={false} />
-        {band.sparkles.map(([x, y], i) => (
-          <i key={`s${i}`} className="band-sparkle" style={at(x, y, { animationDelay: `${i * -0.45}s` })} />
-        ))}
-        {band.glints.map(([x, y], i) => (
-          <i key={`g${i}`} className="band-glint" style={at(x, y, { animationDelay: `${i * -1.9}s` })} />
-        ))}
-        {band.windows.map(([x, y, off], i) => (
-          <i key={`w${i}`} className="band-window" style={at(x, y, { background: off, animationDelay: `${i * -3.7}s` })} />
-        ))}
-        {split === 'creative' &&
-          KITES.map((kite) => (
-            <span key={kite.name} className="band-thing band-kite" style={at(kite.x, kite.y, { animationDelay: `${kite.delay}s` })}>
-              <Sprite name={kite.name} offset={kite.delay * -100} />
-            </span>
+      <div className="band-view">
+        <div
+          className="band-stage"
+          role="img"
+          aria-label={LABEL[split]}
+          style={{ '--focus-x': band.focus[0], '--focus-y': band.focus[1] } as CSSProperties}
+        >
+          <img src={artUrl(band.src)} width={band.w} height={band.h} alt="" loading="lazy" decoding="async" draggable={false} />
+          {band.sparkles.map(([x, y], i) => (
+            <i key={`s${i}`} className="band-sparkle" style={at(x, y, { animationDelay: `${i * -0.45}s` })} />
           ))}
-        {split === 'tech' &&
-          FIREFLIES.map(([x, y, delay], i) => (
-            <i key={`f${i}`} className="band-firefly" style={at(x, y, { animationDelay: `${delay}s, ${delay * 0.7}s` })} />
+          {band.glints.map(([x, y], i) => (
+            <i key={`g${i}`} className="band-glint" style={at(x, y, { animationDelay: `${i * -1.9}s` })} />
           ))}
+          {band.windows.map(([x, y, off], i) => (
+            <i key={`w${i}`} className="band-window" style={at(x, y, { background: off, animationDelay: `${i * -3.7}s` })} />
+          ))}
+          {split === 'creative' &&
+            KITES.map((kite) => (
+              <span key={kite.name} className="band-thing band-kite" style={at(kite.x, kite.y, { animationDelay: `${kite.delay}s` })}>
+                <Sprite name={kite.name} offset={kite.delay * -100} />
+              </span>
+            ))}
+          {split === 'tech' &&
+            FIREFLIES.map(([x, y, delay], i) => (
+              <i key={`f${i}`} className="band-firefly" style={at(x, y, { animationDelay: `${delay}s, ${delay * 0.7}s` })} />
+            ))}
+        </div>
+        <PixelSeam edge="top" />
+        <PixelSeam edge="bottom" />
       </div>
-      <PixelSeam edge="top" />
-      <PixelSeam edge="bottom" />
       <div className="page band-content">
         <Glass className="band-panel">
           <Text as="p" copy={line} className="band-line" />
@@ -94,14 +92,12 @@ export function SceneBand({ line, numbers }: { line: Copy; numbers: Result[] }) 
               {numbers.map((number) => (
                 <div key={number.label} {...devMark(isPlaceholder(number))}>
                   <dt>{number.value}</dt>
-                  <dd>
-                    {number.label}
-                    {number.asOf && <span className="band-as-of">as of {number.asOf}</span>}
-                  </dd>
+                  <dd>{number.label}</dd>
                 </div>
               ))}
             </dl>
           )}
+          {asOf.length > 0 && <p className="band-as-of">as of {asOf.join(', ')}</p>}
         </Glass>
       </div>
     </section>

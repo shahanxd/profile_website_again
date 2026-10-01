@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties } from 'react';
 import { useLive } from '../motion/live';
+import { isQuiet, onQuiet } from '../motion/quiet';
 import { watch } from '../motion/watch';
 import { useSplit } from '../split/store';
 import type { SplitId } from '../split/types';
@@ -11,8 +12,6 @@ interface SpriteProps {
   staging?: SplitId;
   /** Which of the sprite's loops to play. Every sprite has "idle"; the rover also has "drive". */
   sequence?: string;
-  /** Page pixels per art pixel: a whole number, so the sprite stays on the page's pixel grid. */
-  scale?: number;
   /** Face the other way. */
   flip?: boolean;
   /** Milliseconds into the loop to start at, so two of the same sprite are not in step. */
@@ -26,10 +25,11 @@ interface SpriteProps {
 /**
  * One of the garden's cast as a small living sprite: a strip of frames seen
  * through a window one frame wide, stepped (never tweened) through the loop
- * the art script wrote for it. It rests on frame 0 until it is on screen, and
- * stays there when motion is off or the page is held still.
+ * the art script wrote for it. One art pixel is one page pixel, as for every
+ * picture on the page. It rests on frame 0 until it is on screen, and stays
+ * there when motion is off or the page is held still.
  */
-export function Sprite({ name, staging, sequence = 'idle', scale = 1, flip, offset = 0, label, className = '', style }: SpriteProps) {
+export function Sprite({ name, staging, sequence = 'idle', flip, offset = 0, label, className = '', style }: SpriteProps) {
   const { split } = useSplit();
   const art = spriteArt(name, staging ?? split);
   const steps = art.sequences[sequence] ?? art.sequences.idle;
@@ -42,7 +42,7 @@ export function Sprite({ name, staging, sequence = 'idle', scale = 1, flip, offs
     const total = steps.reduce((sum, [, ms]) => sum + ms, 0);
     // Whole frames only: each keyframe holds until the next one. The distance is in the sprite's own units,
     // so it follows the page pixel (and the band's art pixel) if that changes.
-    const at = (frame: number) => `translateX(calc(var(--w) * var(--scale, 1) * var(--px) * ${-frame}))`;
+    const at = (frame: number) => `translateX(calc(var(--w) * var(--px) * ${-frame}))`;
     let elapsed = 0;
     const keyframes: Keyframe[] = steps.map(([frame, ms]) => {
       const keyframe = { transform: at(frame), offset: elapsed / total, easing: 'steps(1, end)' };
@@ -53,9 +53,17 @@ export function Sprite({ name, staging, sequence = 'idle', scale = 1, flip, offs
     const animation = image.animate(keyframes, { duration: total, iterations: Infinity });
     animation.currentTime = offset % total;
     animation.pause();
-    const unwatch = watch(image.parentElement!, (visible) => (visible ? animation.play() : animation.pause()));
+    // It plays while it is on screen, and holds still while serious content is being read.
+    let seen = false;
+    const update = () => (seen && !isQuiet() ? animation.play() : animation.pause());
+    const unwatch = watch(image.parentElement!, (visible) => {
+      seen = visible;
+      update();
+    });
+    const unquiet = onQuiet(update);
     return () => {
       unwatch();
+      unquiet();
       animation.cancel();
     };
   }, [live, steps, offset]);
@@ -63,7 +71,7 @@ export function Sprite({ name, staging, sequence = 'idle', scale = 1, flip, offs
   return (
     <span
       className={`sprite ${className}`}
-      style={{ '--w': art.w, '--h': art.h, '--scale': scale, ...style } as CSSProperties}
+      style={{ '--w': art.w, '--h': art.h, ...style } as CSSProperties}
       data-flip={flip ? '' : undefined}
       role={label ? 'img' : undefined}
       aria-label={label}

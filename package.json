@@ -14,10 +14,11 @@
     "serve": "node scripts/serve-dist.mjs",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run build && node scripts/check-dist.mjs",
-    "art:greybox": "node scripts/make-greybox.mjs",
+    "art:small": "node scripts/make-small-sprites.mjs",
+    "art:scene": "node scripts/import-scene.mjs",
     "art:atlas": "node scripts/pack-atlas.mjs",
     "art:posters": "node scripts/make-posters.mjs",
-    "art:build": "npm run art:greybox && npm run art:atlas && npm run art:posters",
+    "art:build": "npm run art:small && npm run art:scene && npm run art:atlas && npm run art:posters",
     "art:sections": "node scripts/build-section-art.mjs"
   },
   "dependencies": {

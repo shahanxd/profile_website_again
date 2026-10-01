@@ -1,0 +1,647 @@
+/*
+ * The tech side's sections: the garden at night, continued. Built on the
+ * primitives in src/styles/pixel.css and bound by the same rule: pixel
+ * things sit on the page pixel (--px) and move in steps, and anything that
+ * moves does so only under html[data-motion='on']; what is written without
+ * it is the final, still state.
+ */
+
+/* Numbers, which are data and so set in the mono face: a year, "01 / 08". */
+.tech-num {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--t-caption);
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+/* --- about ---------------------------------------------------------------------
+ * The lantern hangs on its chain from the top of the section; the ground it
+ * lights lies along the bottom, and the rover stops where that light begins.
+ * --lamp-x is how far the chain is from the right edge of the page column. */
+.tech-about {
+  --lamp-x: calc(var(--px) * 40);
+  position: relative;
+  isolation: isolate;
+}
+
+.tech-about-body {
+  display: grid;
+  /* one column that never grows past the page, however wide the words would like to be */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-5);
+}
+
+/* the words keep to the left of the lantern and its light, at any width */
+.tech-about-copy,
+.tech-about .toolkit {
+  max-width: calc(100% - var(--lamp-x) - var(--px) * 32);
+}
+
+.tech-about-copy {
+  display: grid;
+  gap: var(--s-3);
+  width: 34em;
+  font-size: var(--t-lead);
+  line-height: 1.5;
+}
+
+.tech-about-copy p + p {
+  color: var(--ink-2);
+}
+
+.tech-ground {
+  position: relative;
+  height: calc(var(--px) * 28);
+}
+
+/* the ground itself: a dotted line, one page pixel thick */
+.tech-ground::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--px) * 4);
+  height: var(--px);
+  background: repeating-linear-gradient(to right, var(--ink-3) 0 var(--px), transparent 0 calc(var(--px) * 4));
+  opacity: 0.5;
+}
+
+.tech-pool {
+  position: absolute;
+  right: calc(var(--lamp-x) - var(--px) * 25);
+  bottom: 0;
+  color: var(--accent);
+}
+
+.tech-rover {
+  --run: 150;
+  position: absolute;
+  right: calc(var(--lamp-x) + var(--px) * 20);
+  bottom: calc(var(--px) * 5);
+  line-height: 0;
+}
+
+html[data-motion='on'] .tech-rover[data-state='waiting'] {
+  transform: translateX(calc(var(--run) * var(--px) * -1));
+}
+
+/* two page pixels a step, ten steps a second; it rests while the ground is off screen */
+html[data-motion='on'] .tech-rover[data-state='driving'] {
+  animation: tech-trundle 7.5s steps(75, end) both paused;
+}
+
+html[data-motion='on'] .tech-ground[data-on] .tech-rover[data-state='driving'] {
+  animation-play-state: running;
+}
+
+@keyframes tech-trundle {
+  from {
+    transform: translateX(calc(var(--run) * var(--px) * -1));
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.tech-lamp {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: calc(max(var(--gutter), (100% - var(--page-max)) / 2) + var(--lamp-x));
+  /* behind the words: lamplight never lies over text */
+  z-index: -1;
+  width: 0;
+  color: var(--accent);
+  pointer-events: none;
+}
+
+/* The lantern in its pool of light: 53 page pixels each way, the lantern's bottom 24 above the ground line, which is 4 above the foot of the section's content. */
+.tech-lamp-head {
+  position: absolute;
+  left: calc(var(--px) * -27);
+  bottom: calc(var(--section-y) + var(--px) * 19);
+  width: calc(var(--px) * 53);
+  height: calc(var(--px) * 53);
+}
+
+.tech-lamp-head > .glyph {
+  opacity: 0.6;
+}
+
+.tech-lamp-head > .sprite {
+  position: absolute;
+  left: calc(var(--px) * 19);
+  bottom: calc(var(--px) * 9);
+}
+
+.tech-lamp-chain {
+  position: absolute;
+  left: calc(var(--px) * -1);
+  top: 0;
+  bottom: calc(var(--section-y) + var(--px) * 77);
+  width: var(--px);
+  /* links of the chain, in the lantern sprite's own two browns */
+  background: repeating-linear-gradient(to top, #864c26 0 calc(var(--px) * 2), #43170f 0 calc(var(--px) * 3));
+}
+
+html[data-motion='on'] .tech-lamp-head[data-on] > .glyph {
+  animation: tech-gutter 3.4s steps(1, end) infinite;
+}
+
+@keyframes tech-gutter {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  38% {
+    opacity: 0.7;
+  }
+  46% {
+    opacity: 0.42;
+  }
+  52% {
+    opacity: 0.62;
+  }
+  80% {
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 767px) {
+  /* On a phone the lantern hangs beside the heading and the ground runs straight under it, before the words. */
+  .tech-about {
+    --lamp-x: calc(var(--px) * 28);
+  }
+
+  .tech-about-copy,
+  .tech-about .toolkit {
+    max-width: 100%;
+  }
+
+  /* the heading keeps clear of the lantern: "hi, i am", then the name */
+  .tech-about .section-heading {
+    max-width: 9ch;
+    text-wrap: wrap;
+  }
+
+  .tech-ground {
+    order: -1;
+  }
+
+  .tech-rover {
+    --run: 54;
+  }
+
+  html[data-motion='on'] .tech-rover[data-state='driving'] {
+    animation-duration: 2.7s;
+    animation-timing-function: steps(27, end);
+  }
+
+  .tech-lamp-chain {
+    bottom: auto;
+    height: calc(var(--section-y) - var(--px) * 9);
+  }
+
+  .tech-lamp-head {
+    top: calc(var(--section-y) - var(--px) * 4);
+    bottom: auto;
+  }
+}
+
+/* --- work ----------------------------------------------------------------------
+ * The owner at work beside the heading, leaning on the bolster at the edge of
+ * the carpet. On wide screens he sits level with the heading's own middle,
+ * so his carpet lies beside the line under it, not above the section. */
+.tech-at-work {
+  display: inline-flex;
+  flex-direction: column;
+  /* he keeps to the right end of the strip: on the narrowest phones it is the far end of the bolster that runs off the column's edge */
+  align-items: flex-end;
+  width: calc(var(--px) * 112);
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.tech-at-work > .sprite {
+  /* sitting into the carpet's top rows */
+  margin-bottom: calc(var(--px) * -2);
+}
+
+@media (min-width: 1100px) {
+  .section-ornament:has(> .tech-at-work) {
+    bottom: calc(var(--px) * -14);
+  }
+}
+
+.tech-intro {
+  max-width: 34ch;
+  margin-top: calc(var(--s-3) - var(--s-6));
+  color: var(--ink-2);
+  font-size: var(--t-lead);
+  line-height: 1.5;
+}
+
+.tech-shows {
+  display: grid;
+  gap: var(--s-7);
+  margin-top: var(--s-6);
+}
+
+/* A showcase: its name and line, the picture in its window, then the story, the numbers and the links. */
+.tech-show {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.tech-show-head {
+  display: grid;
+  align-content: start;
+  gap: var(--s-2);
+}
+
+.tech-show-name {
+  font-size: clamp(38px, 2.2vw + 26px, 60px);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  text-transform: lowercase;
+}
+
+.tech-show-line {
+  max-width: 28ch;
+  font-size: var(--t-lead);
+  line-height: 1.4;
+}
+
+.tech-show-side {
+  display: grid;
+  align-content: start;
+  gap: var(--s-4);
+  /* room for the frame's shadow */
+  padding-right: calc(var(--px) * 2);
+}
+
+.tech-show-side figure {
+  margin: 0;
+}
+
+.tech-show-side figcaption {
+  max-width: 62ch;
+  margin-top: calc(var(--px) * 5);
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: var(--t-caption);
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+}
+
+.tech-show-body {
+  display: grid;
+  align-content: start;
+  gap: var(--s-4);
+  color: var(--ink-2);
+}
+
+@media (min-width: 900px) {
+  .tech-show {
+    grid-template: 'head side' auto 'body side' 1fr / 5fr 7fr;
+    column-gap: var(--s-6);
+  }
+
+  .tech-show[data-flip] {
+    grid-template: 'side head' auto 'side body' 1fr / 7fr 5fr;
+  }
+
+  .tech-show-head {
+    grid-area: head;
+  }
+
+  .tech-show-side {
+    grid-area: side;
+  }
+
+  .tech-show-body {
+    grid-area: body;
+  }
+}
+
+/* The illustration's canvas: one art pixel to a page pixel (PixelScene sizes it), cropped to its window. */
+.pixel-scene {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 5 / 3;
+  /* the wall the scenes are drawn on, until the canvas is painted */
+  background: #262745;
+}
+
+.pixel-scene > canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  image-rendering: pixelated;
+}
+
+.tech-capture {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.tech-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(calc(var(--px) * 24), 1fr));
+  gap: var(--s-3);
+  margin: 0;
+}
+
+/* each number hangs from a short accent bar */
+.tech-results > div {
+  position: relative;
+  padding-top: calc(var(--px) * 4);
+}
+
+.tech-results > div::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--px) * 6);
+  height: var(--px);
+  background: var(--accent);
+}
+
+.tech-results dt {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(26px, 0.8vw + 20px, 34px);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.tech-results dd {
+  margin: calc(var(--px) * 2) 0 0;
+  font-size: var(--t-label);
+  line-height: 1.4;
+}
+
+.tech-stack {
+  --gap: calc(var(--px) * 6);
+  color: var(--ink-3);
+  font-size: var(--t-caption);
+}
+
+.tech-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* "the rest": a label that runs out into a dotted rule */
+.tech-rule {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: var(--s-7) 0 var(--s-4);
+}
+
+.tech-rule::after {
+  content: '';
+  flex: 1;
+  height: var(--px);
+  background: repeating-linear-gradient(to right, var(--ink-3) 0 var(--px), transparent 0 calc(var(--px) * 4));
+  opacity: 0.5;
+}
+
+.tech-cards {
+  display: grid;
+  gap: var(--s-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* every card in a row is as tall as the tallest */
+.tech-cards > li > div,
+.tech-cards .pe {
+  height: 100%;
+}
+
+@media (min-width: 700px) {
+  .tech-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tech-cards > li[data-wide],
+  .tech-cards > li:last-child:nth-child(even) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1000px) {
+  .tech-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.tech-card,
+.tech-card-head,
+.tech-card-rest {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.tech-card-rest {
+  flex: 1;
+}
+
+.tech-card h3 {
+  margin-top: var(--s-1);
+  font-size: var(--t-h3);
+  text-transform: lowercase;
+}
+
+.tech-card-body {
+  color: var(--ink-2);
+  font-size: var(--t-small);
+}
+
+.tech-card-facts {
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: var(--t-caption);
+  letter-spacing: 0.02em;
+}
+
+.tech-card-foot {
+  display: grid;
+  gap: var(--s-2);
+  margin-top: auto;
+  padding-top: var(--s-2);
+}
+
+/* A card with the whole row: what it is on the left, how it was built on the right. */
+@media (min-width: 700px) {
+  li[data-wide] .tech-card {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 4fr);
+    gap: var(--s-5);
+  }
+
+  li[data-wide] .tech-card-head > h3 + p {
+    max-width: 30em;
+    font-size: var(--t-lead);
+    line-height: 1.45;
+  }
+
+  li[data-wide] .tech-card-rest {
+    justify-content: end;
+  }
+
+  li[data-wide] .tech-card-foot {
+    margin-top: 0;
+  }
+}
+
+/* --- proof ---------------------------------------------------------------------
+ * Lamps along a path: a small lantern for each line, joined by a dotted path. */
+.tech-proof {
+  display: grid;
+  /* one column that never grows past the page: the view's fixed shape must not widen it on a narrow phone */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-6);
+}
+
+/* the view is exactly as wide as its picture: 112 art pixels and a rim, one art pixel to a page pixel */
+.tech-proof-view {
+  max-width: calc(var(--px) * 114);
+  aspect-ratio: 114 / 72;
+}
+
+@media (min-width: 1000px) {
+  .tech-proof {
+    grid-template-columns: minmax(0, 1fr) calc(var(--px) * 114);
+    align-items: start;
+  }
+
+  /* the view keeps pace with the path as it is read, so the column beside the list is never left empty */
+  .tech-proof-view {
+    position: sticky;
+    top: calc(var(--px) * 26);
+  }
+}
+
+.tech-path {
+  display: grid;
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tech-path > li {
+  position: relative;
+  display: grid;
+  grid-template-columns: calc(var(--px) * 17) 1fr;
+  align-items: start;
+  column-gap: var(--s-2);
+}
+
+/* the path, from under one lamp to the top of the next */
+.tech-path > li:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--px) * 8);
+  top: calc(var(--px) * 15);
+  bottom: calc(var(--s-3) * -1 - var(--px) * 2);
+  width: var(--px);
+  background: repeating-linear-gradient(to bottom, var(--ink-3) 0 var(--px), transparent 0 calc(var(--px) * 3));
+  opacity: 0.6;
+}
+
+.tech-path-lamp {
+  display: grid;
+  place-items: center;
+  width: calc(var(--px) * 17);
+  height: calc(var(--px) * 17);
+  color: var(--accent);
+}
+
+.tech-path-lamp > * {
+  grid-area: 1 / 1;
+}
+
+.tech-path-glow {
+  opacity: 0.6;
+}
+
+.tech-plaque {
+  display: grid;
+  gap: calc(var(--px) * 2);
+  padding: calc(var(--px) * 5) calc(var(--px) * 6);
+}
+
+.tech-plaque-title {
+  font-size: var(--t-lead);
+  line-height: 1.35;
+}
+
+.tech-plaque-detail {
+  color: var(--ink-2);
+  font-size: var(--t-small);
+}
+
+.tech-path > li:not([data-lit]) :is(.tag, .tech-num) {
+  color: var(--ink-3);
+}
+
+.tech-path > li:not([data-lit]) .tech-plaque-title {
+  color: var(--ink-2);
+}
+
+/* a lit lamp gutters now and then, each a little out of step with the last */
+html[data-motion='on'] .tech-path[data-on] > li[data-lit] .glyph [data-ink='i'] {
+  animation: tech-flame 2.9s steps(1, end) infinite;
+  animation-delay: calc(var(--i) * -1.1s);
+}
+
+@keyframes tech-flame {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  41% {
+    opacity: 0.4;
+  }
+  47% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 0;
+  }
+  83% {
+    opacity: 1;
+  }
+}
+
+/* Where the heading needs the full width, the carpet moves up clear of it, to the left edge of the column. */
+@media (max-width: 1099px) {
+  .section-ornament:has(> .tech-at-work) {
+    position: static;
+    order: -1;
+  }
+}
+
+@media (max-width: 767px) {
+  .tech-shows {
+    gap: var(--s-6);
+  }
+
+  .tech-rule {
+    margin-top: var(--s-6);
+  }
+}

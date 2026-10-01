@@ -21,7 +21,8 @@
 
   --page-max: 1120px;
   --gutter: clamp(20px, 4vw, 40px);
-  --section-y: clamp(96px, 15vh, 176px);
+  /* a section's own space above and below: two of them lie between one section's last block and the next one's label */
+  --section-y: calc(var(--px) * 16);
 
   /* spacing, in page pixels */
   --s-1: calc(var(--px) * 2);
@@ -39,7 +40,7 @@
   --t-body: 17px;
   --t-lead: clamp(19px, 0.6vw + 16px, 23px);
   --t-h3: clamp(24px, 1.2vw + 18px, 34px);
-  --t-h2: clamp(40px, 4.6vw + 16px, 84px);
+  --t-h2: clamp(40px, 4.6vw + 16px, 76px);
   --t-number: clamp(40px, 3vw + 24px, 68px);
 
   /* how long one step of a dither resolve lasts, and a pen stroke */
@@ -55,6 +56,7 @@
 @media (max-width: 767px) {
   :root {
     --px: 3px;
+    --section-y: calc(var(--px) * 15);
   }
 }
 
@@ -76,14 +78,16 @@
   --brass: #c7971d;
   --blossom: #f76476;
   --orange: #d37624;
-  --gold: #c7971d;
   --glass: rgb(250 237 219 / 0.66);
   --glass-solid: #faeddb;
   --glass-edge: rgb(255 255 255 / 0.55);
   --bezel: #3d3c3c;
-  --ground: url('/art/sections/tiles/grain.png');
-  --ground-size: calc(var(--px) * 64);
+  /* two patches of paper grain of sizes that never line up, so the paper does not visibly repeat */
+  --ground: url('/art/sections/tiles/grain-a.png'), url('/art/sections/tiles/grain-b.png');
+  --ground-size: calc(var(--px) * 76), calc(var(--px) * 108);
+  --ground-edge: none;
   --kilim: url('/art/sections/tiles/kilim-creative.png');
+  --bed: url('/art/sections/tiles/bed-creative.png');
 }
 
 :root[data-split='tech'] {
@@ -103,13 +107,14 @@
   --brass: #ffd84d;
   --blossom: #fa6e92;
   --orange: #f57a25;
-  --gold: #ffd84d;
   --glass: rgb(24 27 55 / 0.62);
   --glass-solid: #181b37;
   --glass-edge: rgb(199 198 249 / 0.28);
   --bezel: #0a0b1c;
-  /* two star fields of sizes that never line up, so the sky does not visibly repeat */
-  --ground: url('/art/sections/tiles/stars-a.png'), url('/art/sections/tiles/stars-b.png');
-  --ground-size: calc(var(--px) * 211), calc(var(--px) * 307);
+  /* a few dim stars under the whole page; the bright ones keep to the margins beside the column (see main::after) */
+  --ground: url('/art/sections/tiles/stars-a.png');
+  --ground-size: calc(var(--px) * 211);
+  --ground-edge: url('/art/sections/tiles/stars-b.png');
   --kilim: url('/art/sections/tiles/kilim-tech.png');
+  --bed: url('/art/sections/tiles/bed-tech.png');
 }

@@ -60,15 +60,15 @@
 }
 
 /* --- Sprite --------------------------------------------------------------------
- * A window one frame wide onto a strip of frames. One art pixel is --scale
- * page pixels, so a sprite is always a whole multiple. The frames are stepped
- * by the component (Web Animations), never tweened. */
+ * A window one frame wide onto a strip of frames, one art pixel to a page
+ * pixel. The frames are stepped by the component (Web Animations), never
+ * tweened. */
 .sprite {
   display: inline-block;
   flex: none;
   overflow: hidden;
-  width: calc(var(--w) * var(--scale, 1) * var(--px));
-  height: calc(var(--h) * var(--scale, 1) * var(--px));
+  width: calc(var(--w) * var(--px));
+  height: calc(var(--h) * var(--px));
   line-height: 0;
   vertical-align: bottom;
 }
@@ -87,33 +87,35 @@
 }
 
 /* --- PixelImage ----------------------------------------------------------------
- * Pixel art that fills its box at a whole-number scale: the art pixel is
- * rounded up to whole CSS pixels and the overflow is cropped, centred. */
+ * Pixel art in a box, at exactly one page pixel to an art pixel, like every
+ * sprite on the page: nothing is ever enlarged more than its neighbour. The
+ * box shows as much of the picture as it has room for, around the point it
+ * looks at (--fx, --fy, in art pixels), and is never larger than the picture. */
 .pixel-image {
   position: relative;
   display: block;
   overflow: hidden;
   width: 100%;
+  max-width: calc(var(--w) * var(--px));
+  max-height: calc(var(--h) * var(--px));
   aspect-ratio: var(--w) / var(--h);
   container-type: size;
 }
 
 .pixel-image > img {
-  --k: max(100cqw / var(--w), 100cqh / var(--h));
   position: absolute;
-  left: calc((100cqw - var(--w) * var(--k)) / 2);
-  top: calc((100cqh - var(--h) * var(--k)) / 2);
-  width: calc(var(--w) * var(--k));
-  height: calc(var(--h) * var(--k));
+  left: clamp(100cqw - var(--w) * var(--px), 50cqw - var(--fx) * var(--px), 0px);
+  top: clamp(100cqh - var(--h) * var(--px), 50cqh - var(--fy) * var(--px), 0px);
+  width: calc(var(--w) * var(--px));
+  height: calc(var(--h) * var(--px));
   max-width: none;
   image-rendering: pixelated;
 }
 
-@supports (width: round(up, 1px, 1px)) {
+@supports (width: round(1px, 1px)) {
   .pixel-image > img {
-    --k: max(round(up, 100cqw / var(--w), 1px), round(up, 100cqh / var(--h), 1px));
-    left: round((100cqw - var(--w) * var(--k)) / 2, 1px);
-    top: round((100cqh - var(--h) * var(--k)) / 2, 1px);
+    left: clamp(100cqw - var(--w) * var(--px), round(50cqw - var(--fx) * var(--px), var(--px)), 0px);
+    top: clamp(100cqh - var(--h) * var(--px), round(50cqh - var(--fy) * var(--px), var(--px)), 0px);
   }
 }
 
@@ -163,45 +165,54 @@
 }
 
 /* --- ResolveHeading and Reveal -------------------------------------------------
- * While data-resolve is on an element it shows through a Bayer tile: step 0
- * shows nothing, steps 1 to 7 show 2, 4 ... 14 pixels of every 16. The
- * attribute is stepped by src/motion/resolve.ts and then removed, which
- * leaves the element whole. */
-[data-resolve] {
-  mask-size: calc(var(--px) * 4) calc(var(--px) * 4);
-  image-rendering: pixelated;
-}
-
+ * While data-resolve is on an element, what resolves shows through a Bayer
+ * tile: step 0 shows nothing, steps 1 to 7 show 2, 4 ... 14 pixels of every
+ * 16. The attribute is stepped by src/motion/resolve.ts and then removed,
+ * which leaves everything whole.
+ *
+ * A heading resolves itself. A block (Reveal) resolves only its shell: a
+ * card's ground and shadow, a frame with its picture, an arch. Words inside
+ * a block are never dithered: they are readable from the start. */
 [data-resolve='0'] {
-  opacity: 0;
+  --resolve-show: 0;
 }
 
 [data-resolve='1'] {
-  mask-image: var(--dither-1);
+  --resolve: var(--dither-1);
 }
 
 [data-resolve='2'] {
-  mask-image: var(--dither-2);
+  --resolve: var(--dither-2);
 }
 
 [data-resolve='3'] {
-  mask-image: var(--dither-3);
+  --resolve: var(--dither-3);
 }
 
 [data-resolve='4'] {
-  mask-image: var(--dither-4);
+  --resolve: var(--dither-4);
 }
 
 [data-resolve='5'] {
-  mask-image: var(--dither-5);
+  --resolve: var(--dither-5);
 }
 
 [data-resolve='6'] {
-  mask-image: var(--dither-6);
+  --resolve: var(--dither-6);
 }
 
 [data-resolve='7'] {
-  mask-image: var(--dither-7);
+  --resolve: var(--dither-7);
+}
+
+h2[data-resolve],
+[data-resolve] :is(.pe-back, .pe[data-variant='frame'], .arch) {
+  opacity: var(--resolve-show, 1);
+  mask-image: var(--resolve);
+  mask-size: calc(var(--px) * 4) calc(var(--px) * 4);
+  /* a frame's shadow lies outside its box, and resolves with it */
+  mask-clip: no-clip;
+  image-rendering: pixelated;
 }
 
 /* The phrase a heading underlines, and the pen stroke under it. The stroke is
@@ -241,13 +252,19 @@ html[data-motion='on'] [data-resolve] .pen-line {
  * lengths so they never line up) around a solid middle; --cut slides the
  * strips along, so neighbouring cards are not eaten alike. The shadow keeps
  * straight edges: the eaten edge reads against it, and it is never thinner
- * than its offset. */
+ * than its offset.
+ *
+ * A card's ground and shadow are a layer of their own (.pe-back) behind its
+ * words, so the ground can resolve out of dither while the words stay whole.
+ * A frame has no ground: the eaten edge cuts into the picture itself. */
 .pe {
+  --off: calc(var(--px) * 2);
   position: relative;
   display: block;
 }
 
-.pe-body {
+.pe-ground,
+.pe[data-variant='frame'] > .pe-body {
   --e: calc(var(--px) * 4);
   mask-image:
     url('/art/sections/tiles/edge-top.png'), url('/art/sections/tiles/edge-bottom.png'),
@@ -269,19 +286,29 @@ html[data-motion='on'] [data-resolve] .pen-line {
   image-rendering: pixelated;
 }
 
-.pe-body {
-  position: relative;
-  height: 100%;
-  padding: calc(var(--px) * 7);
+/* as large as the card and its shadow together */
+.pe-back {
+  position: absolute;
+  inset: 0 calc(var(--off) * -1) calc(var(--off) * -1) 0;
+}
+
+.pe-ground {
+  position: absolute;
+  inset: 0 var(--off) var(--off) 0;
   background: var(--pe-fill, var(--card));
-  color: var(--pe-ink, var(--ink));
 }
 
 .pe-shadow {
   position: absolute;
-  inset: 0;
+  inset: var(--off) 0 0 var(--off);
   background: var(--pe-shadow, var(--shade));
-  transform: translate(calc(var(--px) * 2), calc(var(--px) * 2));
+}
+
+.pe-body {
+  position: relative;
+  height: 100%;
+  padding: calc(var(--px) * 7);
+  color: var(--pe-ink, var(--ink));
 }
 
 .pe[data-fill='sunk'] {
@@ -298,17 +325,35 @@ html[data-motion='on'] [data-resolve] .pen-line {
   --pe-ink: var(--accent-ink);
 }
 
-/* A frame holds a picture edge to edge; the eaten edge cuts into the picture itself. */
+.pe[data-variant='frame'] > .pe-shadow {
+  inset: 0;
+  transform: translate(var(--off), var(--off));
+}
+
 .pe[data-variant='frame'] > .pe-body {
   padding: 0;
   overflow: hidden;
   background: var(--pe-fill, var(--ink));
 }
 
-/* One page pixel up and to the left, at once: pixel things do not glide. */
-.pe[data-lift]:hover > .pe-body,
-.pe[data-lift]:focus-within > .pe-body {
+/* Plain: for serious subjects. The same card as its neighbours, in a straight frame one page pixel wide: nothing eaten, nothing raised. */
+.pe[data-tone='plain'] .pe-ground {
+  box-shadow: inset 0 0 0 var(--px) color-mix(in srgb, var(--ink-3) 45%, transparent);
+  clip-path: none;
+  mask-image: none;
+}
+
+/* One page pixel up and to the left, at once: pixel things do not glide. Only where there is a pointer to hover with: a touch would leave the card lifted. */
+.pe[data-lift]:focus-within > .pe-body,
+.pe[data-lift]:focus-within > .pe-back > .pe-ground {
   transform: translate(calc(var(--px) * -1), calc(var(--px) * -1));
+}
+
+@media (hover: hover) {
+  .pe[data-lift]:hover > .pe-body,
+  .pe[data-lift]:hover > .pe-back > .pe-ground {
+    transform: translate(calc(var(--px) * -1), calc(var(--px) * -1));
+  }
 }
 
 /* --- ArchFrame -----------------------------------------------------------------
@@ -410,6 +455,16 @@ html[data-motion='on'] [data-resolve] .pen-line {
 .kilim[data-bleed]::before,
 .kilim[data-bleed]::after {
   content: none;
+}
+
+/* --- FlowerBed -----------------------------------------------------------------
+ * The garden's tulip bed and clipped hedge as a full-width strip: ground for
+ * the end of a page to stand on. The tile is the plate's own, mirrored so it
+ * repeats without a join. */
+.bed {
+  height: calc(var(--px) * 30);
+  background: var(--bed) center / calc(var(--px) * 102) 100% repeat-x;
+  image-rendering: pixelated;
 }
 
 /* --- Glass ---------------------------------------------------------------------
@@ -565,6 +620,18 @@ html[data-motion='on'] .px-link::after {
   transition: clip-path 280ms steps(7, end);
 }
 
+/* Under a finger, links and buttons are given more to press: about forty pixels of height. */
+@media (pointer: coarse) {
+  .px-link:not([data-inline]) {
+    padding-top: calc(var(--px) * 3);
+    padding-bottom: calc(var(--px) * 4);
+  }
+
+  .px-btn-face {
+    min-height: calc(var(--px) * 13);
+  }
+}
+
 /* --- Section shell -------------------------------------------------------------- */
 .section {
   padding-block: var(--section-y);
@@ -573,6 +640,8 @@ html[data-motion='on'] .px-link::after {
 .section-head {
   position: relative;
   display: grid;
+  /* one column that never grows past the page, whatever stands in it */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--s-3);
   margin-bottom: var(--s-6);
 }
@@ -641,7 +710,7 @@ html[data-motion='on'] .px-link::after {
   opacity: 0.22;
 }
 
-html[data-motion='on'][data-split='tech'] .spark::before {
+html[data-motion='on'][data-split='tech'] [data-on] > .spark::before {
   animation: spark-gutter 3.4s steps(1, end) infinite;
 }
 
@@ -665,18 +734,20 @@ html[data-motion='on'][data-split='tech'] .spark::before {
 }
 
 /* --- AmbientLayer --------------------------------------------------------------
- * One low-resolution canvas over the page, enlarged by whole page pixels.
- * It goes quiet in steps while plain-toned content is being read. */
+ * One low-resolution canvas, enlarged by whole page pixels. It lies behind
+ * the page's content and over its ground, so a petal or a firefly passes
+ * under the words and the cards. It goes quiet in steps while serious
+ * content is being read (html[data-quiet], see src/motion/quiet.ts). */
 .ambient {
   position: fixed;
   left: 0;
   top: 0;
-  z-index: 30;
+  z-index: -1;
   image-rendering: pixelated;
   pointer-events: none;
   transition: opacity 360ms steps(4, end);
 }
 
-.ambient[data-quiet] {
+html[data-quiet] .ambient {
   opacity: 0;
 }

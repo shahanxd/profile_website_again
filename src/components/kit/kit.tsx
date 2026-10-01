@@ -9,6 +9,7 @@ import '../../styles/index.css';
 import { AmbientLayer } from '../AmbientLayer';
 import { ArchFrame } from '../ArchFrame';
 import type { SpriteName } from '../art';
+import { FlowerBed } from '../FlowerBed';
 import { Glass } from '../Glass';
 import { KilimDivider } from '../KilimDivider';
 import { PixelButton, PixelLink } from '../PixelButton';
@@ -143,7 +144,7 @@ function Kit() {
             <ul className="flex flex-wrap items-end gap-10 font-mono text-xs">
               {CAST[shown].map((name) => (
                 <li key={name} className="flex flex-col items-center gap-3">
-                  <Sprite name={name} scale={name.startsWith('kite') ? 2 : 1} />
+                  <Sprite name={name} />
                   {name}
                 </li>
               ))}
@@ -170,22 +171,22 @@ function Kit() {
             </div>
           </Block>
 
-          <Block title="Reveal (staggered), ResolveHeading as h3">
-            <ResolveHeading as="h3" copy="a smaller heading that also resolves" mark="resolves" className="text-3xl lowercase" />
+          <Block title="Reveal (a row: the shells resolve, the words do not), ResolveHeading">
+            <ResolveHeading copy="a second heading that resolves" mark="resolves" className="text-3xl lowercase" />
             <div className="mt-8 grid gap-8 md:grid-cols-3">
               {[0, 1, 2].map((i) => (
-                <Reveal key={i} delay={i * 90}>
+                <Reveal key={i} order={i}>
                   <PixelEdge cut={i + 7}>
-                    <p>block {i + 1} resolves out of dither when it scrolls into view.</p>
+                    <p>the card under block {i + 1} resolves out of dither when it scrolls into view.</p>
                   </PixelEdge>
                 </Reveal>
               ))}
             </div>
           </Block>
 
-          <Block title="plain tone: the ambient layer goes quiet around this">
-            <PixelEdge plain shadow={false} tone="sunk">
-              <p>serious content is marked plain. no petals or fireflies cross it.</p>
+          <Block title="plain tone: a straight frame, and the page goes quiet around it">
+            <PixelEdge plain shadow={false}>
+              <p>serious content is marked plain. nothing is eaten or raised, and nothing playful moves while it is read.</p>
             </PixelEdge>
           </Block>
         </Section>
@@ -194,13 +195,14 @@ function Kit() {
           line={draft('the band, with its numbers on glass.')}
           numbers={[
             { value: '00', label: 'a number', confirmed: false, asOf: 'never' },
-            { value: '0+', label: 'another', confirmed: true },
+            { value: '0+', label: 'another', confirmed: false, asOf: 'never' },
           ]}
         />
 
         <Section id="contact" index={3} label="the end" heading={draft('that is the lot')} mark="the lot">
           <KilimDivider bleed />
         </Section>
+        <FlowerBed />
       </main>
       <AmbientLayer />
     </>

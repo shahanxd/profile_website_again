@@ -5,11 +5,18 @@
  * the 352 x 198 scene cover the band. The stage is the whole scene at that
  * scale, slid so the focus point (art pixels, set by the component) sits in
  * the middle, and never past the scene's own edges. Everything living in the
- * scene is placed in art pixels and so stays on its grid.
+ * scene is placed in art pixels and so stays on its grid. On wide screens
+ * that pixel is the hero's own; on a phone it is the page pixel.
  */
 .band {
   position: relative;
   height: clamp(420px, 72vh, 680px);
+}
+
+/* the picture: the window the stage is seen through */
+.band-view {
+  position: absolute;
+  inset: 0;
   overflow: hidden;
   container-type: size;
   background: var(--bg-2);
@@ -106,6 +113,11 @@ html[data-motion='on'] .band[data-on] .band-firefly {
 
 html[data-motion='on'] .band[data-on] .band-kite {
   animation: band-kite 11s steps(1, end) infinite;
+}
+
+/* Serious content is being read just above or below (src/motion/quiet.ts): the band holds still. */
+html[data-quiet] .band-view * {
+  animation-play-state: paused !important;
 }
 
 /* A drop thrown up by the fountain: up two pixels, then gone. */
@@ -236,14 +248,14 @@ html[data-motion='on'] .band[data-on] .band-kite {
   }
 }
 
-/* The numbers, on glass, low on the left where the lawn is. */
+/* The numbers, on glass, low on the left where the lawn is, clear of the seam along the band's foot. */
 .band-content {
   position: relative;
   z-index: 6;
   display: flex;
   align-items: flex-end;
   height: 100%;
-  padding-block: calc(var(--px) * 22);
+  padding-block: calc(var(--px) * 30);
   pointer-events: none;
 }
 
@@ -263,8 +275,7 @@ html[data-motion='on'] .band[data-on] .band-kite {
 
 .band-numbers {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-2) var(--s-5);
+  gap: var(--s-4);
   margin-top: var(--s-3);
 }
 
@@ -272,6 +283,7 @@ html[data-motion='on'] .band[data-on] .band-kite {
   font-family: var(--font-display);
   font-size: var(--t-number);
   line-height: 1;
+  white-space: nowrap;
 }
 
 .band-numbers dd {
@@ -284,13 +296,54 @@ html[data-motion='on'] .band[data-on] .band-kite {
   text-transform: lowercase;
 }
 
+/* when the figures were counted, said once for the panel */
 .band-as-of {
-  display: block;
+  margin-top: var(--s-2);
   color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: var(--t-caption);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
 }
 
+/*
+ * A phone: the picture is as tall as its width allows at the page pixel, and
+ * the panel lies across its foot and runs on below it onto the page, so the
+ * pavilion and the pool are not covered.
+ */
 @media (max-width: 767px) {
+  .band {
+    --view: calc(var(--px) * 164);
+    height: auto;
+  }
+
+  .band-view {
+    bottom: auto;
+    height: var(--view);
+  }
+
+  .band-content {
+    display: block;
+    height: auto;
+    padding-block: calc(var(--view) - var(--px) * 30) 0;
+  }
+
   .band-panel {
+    max-width: none;
     padding: var(--s-3);
+  }
+
+  /* equal shares of the row; on the narrowest phones a third number takes a line of its own */
+  .band-numbers {
+    flex-wrap: wrap;
+    gap: var(--s-3);
+  }
+
+  .band-numbers > div {
+    flex: 1;
+  }
+
+  .band-numbers dt {
+    font-size: calc(var(--px) * 12);
   }
 }

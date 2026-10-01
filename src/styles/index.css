@@ -8,6 +8,12 @@
 @import './pixel.css' layer(components);
 @import './band.css' layer(components);
 @import './menu.css' layer(components);
+@import '../sections/shared/shared.css' layer(components);
+@import '../sections/creative/creative.css' layer(components);
+@import '../sections/tech/tech.css' layer(components);
+
+/* the kit page is for development only: its classes stay out of the built stylesheet */
+@source not '../components/kit';
 
 @theme inline {
   --color-bg: var(--bg);
@@ -25,7 +31,6 @@
   --color-brass: var(--brass);
   --color-blossom: var(--blossom);
   --color-orange: var(--orange);
-  --color-gold: var(--gold);
   --font-display: 'Fraunces Variable', Georgia, serif;
   --font-sans: 'Instrument Sans Variable', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
@@ -36,6 +41,8 @@
   html {
     background: var(--bg);
     scroll-padding-top: calc(var(--px) * 18);
+    /* the page keeps its width when a dialog takes the scrollbar away */
+    scrollbar-gutter: stable;
   }
 
   /* In-page links glide, but only for visitors who have motion on (src/motion/live.ts sets data-motion). */
@@ -43,10 +50,10 @@
     scroll-behavior: smooth;
   }
 
+  /* The page colour is on <html> alone: the ambient layer lies between it and the content, and a ground on <body> would hide it. */
   body {
     margin: 0;
     min-height: 100svh;
-    background: var(--bg);
     color: var(--ink);
     font-family: var(--font-sans);
     font-size: var(--t-body);
@@ -67,6 +74,7 @@
   }
 
   main::before,
+  main::after,
   footer::before {
     content: '';
     position: absolute;
@@ -76,6 +84,20 @@
     background-size: var(--ground-size);
     image-rendering: pixelated;
     pointer-events: none;
+  }
+
+  /* What would read as a mark in a line of text (the night's bright stars) is drawn only in the margins beside the page column. */
+  main::after {
+    --edge: calc(max(var(--gutter), (100% - var(--page-max)) / 2) - var(--px) * 3);
+    background-image: var(--ground-edge);
+    background-size: calc(var(--px) * 307);
+    mask-image: linear-gradient(
+      to right,
+      #000 var(--edge),
+      transparent var(--edge),
+      transparent calc(100% - var(--edge)),
+      #000 calc(100% - var(--edge))
+    );
   }
 
   /* Pixel edges are masks on boxes that may hold ordinary pictures; those stay smooth unless they ask otherwise. */

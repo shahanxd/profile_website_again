@@ -9,20 +9,23 @@ interface PixelImageProps {
   w: number;
   h: number;
   alt: string;
+  /** The point of the picture to keep in the middle of the box, in art pixels. Its centre, unless given. */
+  focus?: readonly [number, number];
   /** Load at once instead of when it nears the screen. */
   eager?: boolean;
   className?: string;
 }
 
 /**
- * Pixel art that fills its box at a whole-number scale. The box is as wide as
- * its parent and keeps the picture's shape unless a class gives it another
- * (an aspect-ratio or a height); the picture covers it, centred, with every
- * art pixel a whole number of CSS pixels.
+ * Pixel art in a box, at exactly one page pixel to an art pixel, as every
+ * sprite on the page is. The box is as wide as its parent (never wider than
+ * the picture) and keeps the picture's shape unless a class gives it another
+ * (an aspect-ratio or a height); it shows as much of the picture as it has
+ * room for, around the point it looks at.
  */
-export function PixelImage({ src, w, h, alt, eager, className = '' }: PixelImageProps) {
+export function PixelImage({ src, w, h, alt, focus = [w / 2, h / 2], eager, className = '' }: PixelImageProps) {
   return (
-    <span className={`pixel-image ${className}`} style={{ '--w': w, '--h': h } as CSSProperties}>
+    <span className={`pixel-image ${className}`} style={{ '--w': w, '--h': h, '--fx': focus[0], '--fy': focus[1] } as CSSProperties}>
       <img src={src} width={w} height={h} alt={alt} loading={eager ? undefined : 'lazy'} decoding="async" draggable={false} />
     </span>
   );
@@ -42,7 +45,7 @@ const THUMB_ALT: Record<ThumbName, string> = {
 };
 
 /**
- * A crop of the garden, in the staging of the split being shown, that stands
+ * A view of the garden, in the staging of the split being shown, that stands
  * in for a picture the owner has not supplied yet. The alt text says so.
  */
 export function Thumb({ name, className }: { name: ThumbName; className?: string }) {

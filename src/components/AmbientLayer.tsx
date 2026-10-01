@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { isStill, useHydrated } from '../motion/live';
+import { isQuiet, onQuiet } from '../motion/quiet';
 import { watch } from '../motion/watch';
 import { useSplit } from '../split/store';
 
@@ -46,11 +47,12 @@ const wrap = (value: number, size: number) => ((value % size) + size) % size;
 /**
  * The air of the garden, continued down the page: a few blossom petals
  * falling (creative) or fireflies wandering (tech). It is one fixed canvas,
- * one canvas pixel to a page pixel, enlarged crisply; it draws 30 times a
- * second, stops with the tab, keeps clear of the hero (which has its own
- * air), and fades out while plain-toned content (data-tone="plain") is being
- * read. With motion off it is not there at all; with ?still=1 it is one
- * frozen frame.
+ * one canvas pixel to a page pixel, enlarged crisply, and it lies behind the
+ * page's content: motes pass under the words and cards, never over them, and
+ * the hero (which has its own air) hides them altogether. It draws 30 times
+ * a second, but only while the page below the hero is on screen, and it
+ * stops and fades out while serious content is being read (quiet.ts). With
+ * motion off it is not there at all; with ?still=1 it is one frozen frame.
  */
 export function AmbientLayer() {
   const { split, motion } = useSplit();
@@ -92,14 +94,10 @@ export function AmbientLayer() {
     const draw = () => {
       const { width, height } = canvas;
       context.clearRect(0, 0, width, height);
-      // Nothing is drawn over the hero: the garden has its own petals and fireflies.
-      const hero = document.getElementById('top')?.getBoundingClientRect().bottom ?? 0;
-      const top = hero / unit;
       const scrolled = frozen ? 0 : scrollY / unit;
       for (const mote of motes) {
         const x = Math.floor(mote.x);
         const y = Math.floor(wrap(mote.y - scrolled * mote.depth, height + 6)) - 3;
-        if (y < top) continue;
         if (split === 'tech') paintFirefly(context, mote, x, y, time);
         else paintPetal(context, mote, x, y, time);
       }
@@ -137,31 +135,32 @@ export function AmbientLayer() {
       draw();
     };
 
-    // Quiet while anything plain-toned is well inside the window.
-    const plain = new Set<Element>();
-    const unwatch = [...document.querySelectorAll('[data-tone="plain"]')].map((element) =>
-      watch(
-        element,
-        (visible) => {
-          if (visible) plain.add(element);
-          else plain.delete(element);
-          if (plain.size) canvas.dataset.quiet = '';
-          else delete canvas.dataset.quiet;
-        },
-        '-12% 0px -12% 0px',
-      ),
-    );
+    // The loop runs only while there is page for the motes to be seen on, and no call for quiet.
+    let onPage = false;
+    const update = () => {
+      cancelAnimationFrame(request);
+      if (frozen || !onPage || isQuiet()) return;
+      last = performance.now();
+      request = requestAnimationFrame(frame);
+    };
+    const page = document.querySelector('main');
+    const unwatch = page
+      ? watch(page, (visible) => {
+          onPage = visible;
+          update();
+        })
+      : undefined;
+    const unquiet = onQuiet(update);
 
     size();
     draw();
     window.addEventListener('resize', onResize);
-    if (!frozen) request = requestAnimationFrame(frame);
 
     return () => {
       cancelAnimationFrame(request);
       window.removeEventListener('resize', onResize);
-      unwatch.forEach((stop) => stop());
-      delete canvas.dataset.quiet;
+      unwatch?.();
+      unquiet();
     };
   }, [split, shown]);
 

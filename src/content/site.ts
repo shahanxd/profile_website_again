@@ -12,11 +12,8 @@ import { draft, type LinkItem, type SiteContent } from './types';
 const github: LinkItem = { kind: 'social', label: 'github', href: 'https://github.com/shahanxd' };
 const linkedin: LinkItem = { kind: 'social', label: 'linkedin', href: 'https://linkedin.com/in/shahanxd' };
 const instagram: LinkItem = { kind: 'social', label: 'instagram', href: 'https://instagram.com/notshahanxd' };
-const youtube: LinkItem = {
-  kind: 'social',
-  label: 'youtube',
-  href: 'https://youtube.com/@UCyjEeSvqUYPtwiZmyd1q_Yw',
-};
+// the handle youtube itself gives for the owner's channel (id UCyjEeSvqUYPtwiZmyd1q_Yw)
+const youtube: LinkItem = { kind: 'social', label: 'youtube', href: 'https://youtube.com/@shahanxd4734' };
 
 const repo = (name: string): LinkItem => ({
   kind: 'repo',
@@ -45,6 +42,7 @@ export const site: SiteContent = {
       stack: ['python', 'stereo vision', 'visual odometry', 'mppi planning', 'three.js simulator'],
       links: [repo('metagross')],
       thumb: 'carpet',
+      caption: draft('an illustration, not telemetry. the rover plans only through cells it has seen; hatched ground is off limits.'),
     },
     cassetto: {
       id: 'cassetto',
@@ -65,6 +63,7 @@ export const site: SiteContent = {
         { kind: 'package', label: 'pypi', href: 'https://pypi.org/project/cassetto/' },
       ],
       thumb: 'lantern',
+      caption: draft('look up one symbol, and what it calls and what calls it light up, then one step further out.'),
     },
     undumployed: {
       id: 'undumployed',
@@ -84,6 +83,7 @@ export const site: SiteContent = {
         repo('undumployed'),
       ],
       thumb: 'pavilion',
+      caption: draft('every entry is opened, read against its official page, and stamped.'),
     },
     sumud: {
       id: 'sumud',
@@ -166,6 +166,7 @@ export const site: SiteContent = {
           'i started with cs50x in my first year and have not stopped building since. these days it is mostly machine learning systems: compilers, inference, and the tooling around them.',
         ),
         draft('i care about measuring things properly and saying plainly what worked and what did not.'),
+        draft('the other half of me edits video and designs. that side of the garden is one switch away.'),
       ],
       toolkit: ['python', 'c++', 'javascript', 'pytorch', 'godot', 'react', 'sql', 'latex'],
     },
@@ -186,19 +187,52 @@ export const site: SiteContent = {
     },
     band: {
       line: draft('built late, tested properly.'),
+      // the projects' own confirmed figures; the old site's counts (leetcode, open source) are in the achievements below
       numbers: [
-        { value: '500+', label: 'leetcode questions', confirmed: false, asOf: 'early 2025' },
-        { value: '2', label: 'open-source contributions', confirmed: false, asOf: 'early 2025' },
+        { value: '700+', label: 'entries in undumployed', confirmed: true },
+        { value: '~420', label: 'tests in metagross', confirmed: true },
+        { value: '18', label: 'mcp tools in cassetto', confirmed: true },
       ],
     },
     proof: {
       heading: draft('along the way'),
       mark: 'the way',
+      // Oldest first. A lamp is lit once its line has a year and is confirmed; an entry without a year is still to come.
       achievements: [
-        { title: draft('smart india hackathon 2026: metagross submitted'), year: '2026', confirmed: false },
-        { title: draft('cassetto published on pypi'), year: '2026', confirmed: false },
-        { title: draft('cs50x completed; this site began as its final project'), year: '2025', confirmed: false },
-        { title: draft('the next line goes here, once it is earned.'), year: 'soon', confirmed: false },
+        {
+          title: draft('cs50x completed; this site began as its final project'),
+          detail: draft('where the building started.'),
+          year: '2025',
+          confirmed: false,
+        },
+        {
+          // the old site's counts, as they stood then
+          title: draft('500+ leetcode questions, and 2 open-source contributions'),
+          detail: draft('counted in early 2025. both are due a recount.'),
+          year: '2025',
+          confirmed: false,
+        },
+        {
+          // first release on pypi: 27 may 2026
+          title: draft('cassetto published on pypi'),
+          detail: draft('one pip install away.'),
+          year: '2026',
+          href: 'https://pypi.org/project/cassetto/',
+          confirmed: true,
+        },
+        {
+          // the submission is a confirmed fact (see metagross above); the result is not in yet
+          title: draft('smart india hackathon 2026: metagross submitted'),
+          detail: draft('how far it went will be written here, whichever way it goes.'),
+          year: '2026',
+          confirmed: true,
+        },
+        {
+          title: draft('a hackathon result will be pinned here.'),
+          detail: draft('the real placing, not a rounded-up one.'),
+          confirmed: false,
+        },
+        { title: draft('the next line goes here, once it is earned.'), confirmed: false },
       ],
     },
     contact: {
@@ -243,6 +277,7 @@ export const site: SiteContent = {
           role: 'a 2d narrative adventure about one family in gaza, told over ten days. a game about staying.',
           href: 'https://github.com/shahanxd/sumud',
           thumb: 'sky',
+          standIn: draft('a still from the game will go here.'),
           confirmed: true,
         },
         {

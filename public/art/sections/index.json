@@ -1,8 +1,4 @@
 {
-  "thumb": {
-    "w": 112,
-    "h": 70
-  },
   "tiles": {
     "edge": {
       "depth": 4,
@@ -35,10 +31,11 @@
       "w": 16,
       "h": 11
     },
-    "grain": {
-      "w": 64,
-      "h": 64
+    "bed": {
+      "w": 102,
+      "h": 30
     },
+    "grain": [76, 108],
     "stars": [211, 307]
   },
   "creative": {
@@ -46,10 +43,27 @@
       "src": "creative/band.png",
       "w": 352,
       "h": 198,
-      "focus": [236, 116],
+      "focus": [214, 116],
       "glints": [[196, 152], [234, 150], [255, 154], [221, 157], [211, 136]],
       "sparkles": [[225, 141], [228, 143], [223, 144], [227, 139]],
       "windows": []
+    },
+    "garden": {
+      "src": "creative/garden.png",
+      "w": 352,
+      "h": 198
+    },
+    "views": {
+      "pavilion": [212, 104],
+      "pool": [226, 150],
+      "horizon": [296, 88],
+      "canopy": [92, 36],
+      "beds": [294, 130],
+      "lantern": [78, 58],
+      "carpet": [116, 156],
+      "sky": [262, 40],
+      "cypress": [158, 92],
+      "cat": [26, 154]
     },
     "sprites": {
       "lantern": {
@@ -164,15 +178,14 @@
           "idle": [[0, 2600], [1, 1400]]
         }
       }
-    },
-    "thumbs": ["pavilion", "pool", "horizon", "canopy", "beds", "lantern", "carpet", "sky", "cypress", "cat"]
+    }
   },
   "tech": {
     "band": {
       "src": "tech/band.png",
       "w": 352,
       "h": 198,
-      "focus": [236, 112],
+      "focus": [214, 112],
       "glints": [[196, 152], [236, 151], [256, 155], [224, 157], [212, 138]],
       "sparkles": [[225, 141], [228, 143], [223, 144]],
       "windows": [
@@ -184,6 +197,23 @@
         [303, 102, "#5b2831"],
         [320, 102, "#5b2831"]
       ]
+    },
+    "garden": {
+      "src": "tech/garden.png",
+      "w": 352,
+      "h": 198
+    },
+    "views": {
+      "pavilion": [212, 104],
+      "pool": [226, 150],
+      "horizon": [288, 88],
+      "canopy": [92, 36],
+      "beds": [294, 130],
+      "lantern": [78, 58],
+      "carpet": [128, 158],
+      "sky": [296, 40],
+      "cypress": [158, 92],
+      "cat": [24, 158]
     },
     "sprites": {
       "lantern": {
@@ -255,10 +285,10 @@
       },
       "figure": {
         "src": "tech/figure.png",
-        "w": 73,
+        "w": 107,
         "h": 53,
         "frames": 4,
-        "at": [48, 111],
+        "at": [14, 111],
         "sequences": {
           "idle": [
             [1, 120],
@@ -293,7 +323,6 @@
           "idle": [[0, 2600], [1, 1400]]
         }
       }
-    },
-    "thumbs": ["pavilion", "pool", "horizon", "canopy", "beds", "lantern", "carpet", "sky", "cypress", "cat"]
+    }
   }
 }

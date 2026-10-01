@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ResolveHeading } from '../components/ResolveHeading';
 import type { Copy, SlotId } from '../content/types';
+import { useOnScreen } from '../motion/watch';
 
 interface SectionProps {
   id: SlotId;
@@ -19,11 +20,14 @@ interface SectionProps {
  * a heading that resolves out of dither, then the section's own content.
  */
 export function Section({ id, index, label, heading, mark, ornament, children }: SectionProps) {
+  // the marker's lit halo gutters only while the label is on screen
+  const labelRef = useOnScreen<HTMLParagraphElement>();
+
   return (
     <section id={id} className="section" aria-labelledby={`${id}-heading`}>
       <div className="page">
         <header className="section-head">
-          <p className="eyebrow section-label">
+          <p ref={labelRef} className="eyebrow section-label">
             <span className="spark" aria-hidden="true" />
             {String(index).padStart(2, '0')} / {label}
           </p>

@@ -14,7 +14,7 @@ const everyPage = ['<h1', 'id="about"', 'id="work"', 'id="proof"', 'id="contact"
 const expectations = {
   'index.html': { split: 'creative', has: ["a client's words will sit here", 'a video edit will sit here'], lacks: ['metagross'] },
   'creative.html': { split: 'creative', has: ["a client's words will sit here", 'a video edit will sit here'], lacks: ['metagross'] },
-  'tech.html': { split: 'tech', has: ['metagross', 'cassetto', 'the next line goes here'], lacks: ['a video edit will sit here'] },
+  'tech.html': { split: 'tech', has: ['metagross', 'cassetto', 'the next line goes here', 'not yet'], lacks: ['a video edit will sit here'] },
 };
 
 const failures = [];
@@ -48,11 +48,7 @@ for (const [file, expected] of Object.entries(expectations)) {
 try {
   const index = JSON.parse(await readFile(path.join(dist, 'art', 'sections', 'index.json'), 'utf8'));
   for (const staging of ['creative', 'tech']) {
-    const files = [
-      index[staging].band.src,
-      ...Object.values(index[staging].sprites).map((sprite) => sprite.src),
-      ...index[staging].thumbs.map((name) => `${staging}/thumb-${name}.png`),
-    ];
+    const files = [index[staging].band.src, index[staging].garden.src, ...Object.values(index[staging].sprites).map((sprite) => sprite.src)];
     for (const src of files) {
       await access(path.join(dist, 'art', 'sections', src)).catch(() => failures.push(`section art: missing ${src}`));
     }

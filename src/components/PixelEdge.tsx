@@ -12,7 +12,7 @@ interface PixelEdgeProps {
   lift?: boolean;
   /** Any whole number: slides the eaten pattern along, so neighbouring cards differ. Pass the card's index. */
   cut?: number;
-  /** Serious content (sumud, salamah): the ambient layer goes quiet while it is being read. */
+  /** Serious content (sumud, salamah): a straight frame instead of the eaten edge, and the page goes quiet while it is being read. */
   plain?: boolean;
   /** Classes for the outer box (its place in a grid). */
   className?: string;
@@ -25,7 +25,9 @@ interface PixelEdgeProps {
 /**
  * A card or picture frame with ragged, pixel-eaten edges and a hard offset
  * shadow. The edge is a CSS mask of small generated tiles, so it costs
- * nothing to scroll and suits any size.
+ * nothing to scroll and suits any size. A card's ground and shadow sit in a
+ * layer behind its words, which is what a Reveal resolves: the words
+ * themselves are never dithered.
  */
 export function PixelEdge({
   as: Tag = 'div',
@@ -50,8 +52,15 @@ export function PixelEdge({
       data-tone={plain ? 'plain' : undefined}
       style={{ '--cut': cut } as CSSProperties}
     >
-      {shadow && <span className="pe-shadow step-2" aria-hidden="true" />}
-      <div className={`pe-body step-2 ${bodyClassName}`}>{children}</div>
+      {variant === 'card' ? (
+        <span className="pe-back" aria-hidden="true">
+          {shadow && <span className="pe-shadow step-2" />}
+          <span className="pe-ground step-2" />
+        </span>
+      ) : (
+        shadow && <span className="pe-shadow step-2" aria-hidden="true" />
+      )}
+      <div className={`pe-body ${variant === 'frame' ? 'step-2' : ''} ${bodyClassName}`}>{children}</div>
     </Tag>
   );
 }

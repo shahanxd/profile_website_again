@@ -1,0 +1,815 @@
+/*
+ * The creative split's sections (src/sections/creative): why, the showcase,
+ * and what clients said. Everything is built from the primitives in
+ * src/styles/pixel.css and keeps their rules: sizes are whole page pixels
+ * (--px), pixel things move in steps and only under html[data-motion='on'],
+ * and what is written without that attribute is the final, still state.
+ */
+
+/* --- why: a note, the parrot on its corner, the coffee, the toolkit ------------ */
+.cr-about {
+  display: grid;
+  gap: var(--s-5) var(--s-4);
+  /* the parrot's head may stand in the space under the heading */
+  margin-top: calc(var(--px) * -8);
+}
+
+/* Room above the note for the parrot to stand in, and beside it for its tail to hang: both stay inside the box that resolves. */
+.cr-note {
+  position: relative;
+  padding: calc(var(--px) * 17) calc(var(--px) * 9) 0 0;
+}
+
+/* Its feet are 17 art pixels down and 8 from the tail's end: on the note's top edge, at the corner. */
+.cr-note-parrot {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.cr-note .pe-body {
+  padding: calc(var(--px) * 10);
+}
+
+.cr-statement {
+  font-family: var(--font-display);
+  font-size: var(--t-h3);
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.cr-statement-more {
+  max-width: 46ch;
+  margin-top: var(--s-3);
+  color: var(--ink-2);
+  font-size: var(--t-lead);
+  line-height: 1.5;
+}
+
+/* The coffee tray, on the corner of the carpet: its border runs in from the right edge of the page as far as the note. */
+.cr-still {
+  display: grid;
+  justify-items: center;
+  align-content: end;
+}
+
+.cr-tray {
+  position: relative;
+  z-index: 1;
+  margin-bottom: calc(var(--px) * -3);
+  line-height: 0;
+}
+
+/* The sprite's own steam is the carpet's cream, which paper swallows. The same wisp, the same four frames, drawn here in ink. */
+.cr-steam {
+  --wisp: rgb(88 75 71 / 0.5);
+  position: absolute;
+  left: calc(var(--px) * 24);
+  top: calc(var(--px) * 12);
+  width: var(--px);
+  height: var(--px);
+  background: var(--wisp);
+  box-shadow:
+    var(--px) calc(var(--px) * -2) 0 var(--wisp),
+    0 calc(var(--px) * -4) 0 var(--wisp);
+}
+
+html[data-motion='on'] .cr-still[data-on] .cr-steam {
+  animation: cr-steam 1.68s steps(1, end) infinite;
+}
+
+@keyframes cr-steam {
+  0%,
+  100% {
+    transform: none;
+    box-shadow:
+      var(--px) calc(var(--px) * -2) 0 var(--wisp),
+      0 calc(var(--px) * -4) 0 var(--wisp);
+  }
+  25% {
+    transform: translateX(var(--px));
+    box-shadow:
+      calc(var(--px) * -1) calc(var(--px) * -2) 0 var(--wisp),
+      0 calc(var(--px) * -4) 0 var(--wisp),
+      calc(var(--px) * -1) calc(var(--px) * -6) 0 var(--wisp);
+  }
+  50% {
+    transform: translateY(calc(var(--px) * -1));
+    box-shadow:
+      var(--px) calc(var(--px) * -2) 0 var(--wisp),
+      0 calc(var(--px) * -4) 0 var(--wisp);
+  }
+  75% {
+    transform: translate(var(--px), calc(var(--px) * -1));
+    box-shadow:
+      calc(var(--px) * -1) calc(var(--px) * -2) 0 var(--wisp),
+      0 calc(var(--px) * -4) 0 var(--wisp),
+      0 calc(var(--px) * -6) 0 var(--wisp);
+  }
+}
+
+.cr-still > .kilim {
+  margin-right: 0;
+}
+
+.cr-still > .kilim::after {
+  content: none;
+}
+
+@media (min-width: 768px) {
+  .cr-about {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  .cr-note {
+    grid-column: 1 / span 9;
+  }
+
+  .cr-still {
+    grid-column: 10 / span 3;
+  }
+
+  .cr-about > .toolkit {
+    grid-column: 1 / -1;
+  }
+}
+
+/* --- the showcase: groups ------------------------------------------------------- */
+.cr-intro {
+  max-width: 44ch;
+  /* it belongs to the heading, so it sits closer to it than the section's content usually does */
+  margin-top: calc(var(--s-4) * -1);
+  color: var(--ink-2);
+  font-size: var(--t-lead);
+  line-height: 1.5;
+}
+
+.cr-group {
+  margin-top: var(--s-6);
+}
+
+.cr-intro + .cr-group {
+  margin-top: var(--s-5);
+}
+
+/* A group's name, a row of dots, and how many pieces it holds. */
+.cr-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  margin-bottom: var(--s-4);
+}
+
+.cr-group-head > h3 {
+  font-size: var(--t-h3);
+  text-transform: lowercase;
+}
+
+.cr-group-head > span {
+  flex: 1;
+  align-self: center;
+  height: var(--px);
+  background: repeating-linear-gradient(to right, var(--ink-3) 0 var(--px), transparent 0 calc(var(--px) * 4));
+  opacity: 0.45;
+}
+
+.cr-caption {
+  margin-top: var(--s-2);
+}
+
+.cr-caption > h4 {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-transform: lowercase;
+  text-wrap: balance;
+}
+
+/* the featured piece's title: larger, but under the group's name */
+.cr-caption[data-big] > h4 {
+  font-size: calc(var(--t-h3) * 0.8);
+}
+
+.cr-caption > p {
+  margin-top: var(--px);
+  color: var(--ink-2);
+  font-size: var(--t-small);
+  line-height: 1.45;
+}
+
+/* --- marks: play, and open larger ------------------------------------------------
+ * A small face with stepped corners over a hard shadow, like a PixelButton,
+ * holding one glyph cut in pixels. --u is the mark's own pixel. */
+.cr-mark {
+  --u: var(--px);
+  --stepped: polygon(
+    var(--u) 0,
+    calc(100% - var(--u)) 0,
+    calc(100% - var(--u)) var(--u),
+    100% var(--u),
+    100% calc(100% - var(--u)),
+    calc(100% - var(--u)) calc(100% - var(--u)),
+    calc(100% - var(--u)) 100%,
+    var(--u) 100%,
+    var(--u) calc(100% - var(--u)),
+    0 calc(100% - var(--u)),
+    0 var(--u),
+    var(--u) var(--u)
+  );
+  position: relative;
+  display: block;
+  padding: 0 var(--u) var(--u) 0;
+}
+
+.cr-mark::before {
+  content: '';
+  position: absolute;
+  inset: var(--u) 0 0 var(--u);
+  background: var(--ink);
+  clip-path: var(--stepped);
+}
+
+.cr-mark > span {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 9);
+  height: calc(var(--u) * 9);
+  background: var(--card);
+  clip-path: var(--stepped);
+}
+
+.cr-mark i {
+  display: block;
+  background: var(--accent);
+}
+
+/* a triangle, four pixels wide and seven tall */
+.cr-play i {
+  width: calc(var(--u) * 4);
+  height: calc(var(--u) * 7);
+  margin-left: var(--u);
+  clip-path: polygon(
+    0 0,
+    25% 0,
+    25% 14.29%,
+    50% 14.29%,
+    50% 28.57%,
+    75% 28.57%,
+    75% 42.86%,
+    100% 42.86%,
+    100% 57.14%,
+    75% 57.14%,
+    75% 71.43%,
+    50% 71.43%,
+    50% 85.71%,
+    25% 85.71%,
+    25% 100%,
+    0 100%
+  );
+}
+
+/* a plus, five pixels each way */
+.cr-plus > span {
+  width: calc(var(--u) * 7);
+  height: calc(var(--u) * 7);
+}
+
+.cr-plus i {
+  width: calc(var(--u) * 5);
+  height: calc(var(--u) * 5);
+  clip-path: polygon(40% 0, 60% 0, 60% 40%, 100% 40%, 100% 60%, 60% 60%, 60% 100%, 40% 100%, 40% 60%, 0 60%, 0 40%, 40% 40%);
+}
+
+/* The button a mark belongs to covers its whole picture. */
+.cr-hit {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cr-hit[data-corner] {
+  place-items: end;
+  padding: calc(var(--px) * 4);
+}
+
+.cr-hit:hover .cr-mark > span,
+.cr-hit:focus-visible .cr-mark > span {
+  background: var(--accent);
+}
+
+.cr-hit:hover .cr-mark i,
+.cr-hit:focus-visible .cr-mark i {
+  background: var(--accent-ink);
+}
+
+.cr-hit:active .cr-mark > span {
+  transform: translate(var(--u), var(--u));
+}
+
+/* The ring goes round the mark, and has paper either side of it so it shows on any picture. */
+.cr-hit:focus-visible {
+  outline: none;
+}
+
+.cr-hit:focus-visible .cr-mark {
+  outline: var(--hair) solid var(--accent);
+  outline-offset: var(--hair);
+  box-shadow: 0 0 0 calc(var(--hair) * 3) var(--card);
+}
+
+/* --- video ------------------------------------------------------------------------ */
+.cr-videos {
+  display: grid;
+  gap: var(--s-5) var(--s-4);
+}
+
+.cr-videos-rest {
+  display: grid;
+  gap: var(--s-4);
+  align-content: start;
+}
+
+@media (min-width: 600px) {
+  .cr-videos-rest {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Side by side, the featured piece is as tall as the column of small ones, so its words and the last small piece's end on one line. */
+@media (min-width: 960px) {
+  .cr-videos {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+
+  .cr-videos-rest {
+    grid-template-columns: none;
+  }
+
+  .cr-videos-first > article {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    height: 100%;
+  }
+
+  .cr-videos-first .arch {
+    height: 100%;
+  }
+
+  .cr-videos-first .cr-screen[data-big] {
+    height: 100%;
+    min-height: calc(var(--px) * 80);
+    aspect-ratio: auto;
+  }
+
+  /* a playing video keeps its own shape, in the middle of the same space */
+  .cr-videos-first .cr-player {
+    display: grid;
+    align-items: center;
+  }
+}
+
+/* A sixteen-by-nine window: the picture, the play mark over it, and then the player. */
+.cr-screen {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--ink);
+}
+
+.cr-screen > .pixel-image,
+.cr-screen > img,
+.cr-screen > iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.cr-screen > img {
+  object-fit: cover;
+}
+
+.cr-screen[data-big] .cr-mark {
+  --u: calc(var(--px) * 2);
+}
+
+/* A playing video's frame: a plain ink rim and the same hard shadow, nothing over the player. */
+.cr-player {
+  padding: var(--px);
+  background: var(--ink);
+  box-shadow: calc(var(--px) * 2) calc(var(--px) * 2) 0 var(--shade);
+}
+
+/* The arch lifts off its shadow as the eaten frames do. */
+.cr-videos .arch:focus-within > :not(.arch-shadow) {
+  transform: translate(calc(var(--px) * -1), calc(var(--px) * -1));
+}
+
+@media (hover: hover) {
+  .cr-videos .arch:hover > :not(.arch-shadow) {
+    transform: translate(calc(var(--px) * -1), calc(var(--px) * -1));
+  }
+}
+
+/* What a stand-in says when its play mark is pressed: a strip along the foot of the picture. */
+.cr-slate {
+  position: absolute;
+  inset: auto 0 0;
+  padding: calc(var(--px) * 3) calc(var(--px) * 4);
+  background: var(--ink);
+  color: var(--bg);
+  font-family: var(--font-pixel);
+  font-size: var(--t-label);
+  line-height: 1.3;
+  letter-spacing: 0.03em;
+  text-transform: lowercase;
+  pointer-events: none;
+}
+
+.cr-slate:empty {
+  display: none;
+}
+
+html[data-motion='on'] .cr-slate {
+  animation: cr-slate 240ms steps(4, end);
+}
+
+@keyframes cr-slate {
+  from {
+    clip-path: inset(100% 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+/* --- design: pieces on a ledge -------------------------------------------------------
+ * Each piece is three rows of the gallery's grid (the picture, the ledge, the
+ * words), so pictures of different heights stand on one line and their words
+ * start on another. Three to a row on wide screens, filling it; two on narrow. */
+.cr-gallery {
+  --gap: var(--s-3);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--gap);
+}
+
+.cr-piece {
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  padding-bottom: var(--s-4);
+}
+
+.cr-piece-top {
+  position: relative;
+  align-self: end;
+}
+
+/* The cat, sitting on top of the shortest frame, its feet in the eaten edge. */
+.cr-perch {
+  position: absolute;
+  right: calc(var(--px) * 8);
+  bottom: calc(100% - var(--px) * 2);
+}
+
+/* A picture's shadow falls to its right; below, it would fall through the ledge, so it is cut off there. */
+.cr-piece-art {
+  position: relative;
+  line-height: 0;
+  clip-path: inset(calc(var(--px) * -2) calc(var(--px) * -3) 0 calc(var(--px) * -2));
+}
+
+/* A real piece fills its frame; the frame was given the picture's own shape. */
+.cr-piece-art .pe-body > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The ledge runs on under the gap to the next piece, so the pieces of a row share one. Under it, a panel of the pavilion's jali railing, cut to whole repeats. */
+.cr-ledge {
+  height: calc(var(--px) * 13);
+  margin-inline: calc(var(--gap) / -2);
+  border-top: var(--px) solid var(--ink);
+}
+
+.cr-ledge::after {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin-inline: auto;
+  background: var(--ink-3);
+  opacity: 0.3;
+  mask-image: var(--tile-jali);
+  mask-size: calc(var(--px) * 12) calc(var(--px) * 12);
+  image-rendering: pixelated;
+}
+
+@supports (width: round(down, 1px, 1px)) {
+  .cr-ledge::after {
+    width: round(down, 100%, calc(var(--px) * 12));
+  }
+}
+
+@media (max-width: 767px) {
+  /* a piece alone in the last row: its ledge runs on under the empty place beside it */
+  .cr-piece:last-child:nth-child(odd) > .cr-ledge {
+    margin-right: calc(-100% - var(--gap) * 1.5);
+  }
+}
+
+@media (min-width: 768px) {
+  .cr-gallery {
+    --gap: var(--s-4);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* A piece opened larger: a card in the middle of the dimmed page. */
+.cr-lightbox {
+  width: min(100vw - 2 * var(--gutter), 920px, (100svh - 240px) * 1.6);
+  max-width: none;
+  max-height: none;
+  margin: auto;
+  overflow: visible;
+  background: none;
+  color: var(--ink);
+}
+
+.cr-lightbox::backdrop {
+  background: rgb(10 8 16 / 0.55);
+}
+
+html:has(.cr-lightbox[open]) {
+  overflow: hidden;
+}
+
+.cr-lightbox .pe-body {
+  padding: calc(var(--px) * 5);
+}
+
+/* A tall piece is shown whole, inside the window's height. */
+.cr-lightbox-art {
+  max-height: calc(100svh - 240px);
+}
+
+.cr-lightbox-art > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.cr-lightbox-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-4);
+  margin-top: var(--s-2);
+}
+
+.cr-lightbox-foot > .cr-caption {
+  margin-top: 0;
+}
+
+/* It arrives the way the headings do: out of dither, in steps. */
+html[data-motion='on'] .cr-lightbox[open] > .pe {
+  mask-size: calc(var(--px) * 4) calc(var(--px) * 4);
+  image-rendering: pixelated;
+  animation: cr-dither-in 320ms step-end;
+}
+
+@keyframes cr-dither-in {
+  0% {
+    mask-image: var(--dither-2);
+  }
+  25% {
+    mask-image: var(--dither-4);
+  }
+  50% {
+    mask-image: var(--dither-6);
+  }
+  75% {
+    mask-image: var(--dither-7);
+  }
+  100% {
+    mask-image: none;
+  }
+}
+
+/* --- sumud ------------------------------------------------------------------------
+ * Plain: a sunk panel and a border of running stitches. Nothing here moves. */
+.cr-sumud {
+  position: relative;
+  display: grid;
+  gap: var(--s-4);
+  padding: calc(var(--px) * 8);
+  background: var(--bg-2);
+}
+
+.cr-sumud::before {
+  --stitch: calc(var(--px) * 3);
+  content: '';
+  position: absolute;
+  inset: calc(var(--px) * 3);
+  background:
+    repeating-linear-gradient(to right, var(--accent) 0 calc(var(--px) * 2), transparent 0 var(--stitch)) 0 0 / 100% var(--px) no-repeat,
+    repeating-linear-gradient(to right, var(--accent) 0 calc(var(--px) * 2), transparent 0 var(--stitch)) 0 100% / 100% var(--px) no-repeat,
+    repeating-linear-gradient(to bottom, var(--accent) 0 calc(var(--px) * 2), transparent 0 var(--stitch)) 0 0 / var(--px) 100% no-repeat,
+    repeating-linear-gradient(to bottom, var(--accent) 0 calc(var(--px) * 2), transparent 0 var(--stitch)) 100% 0 / var(--px) 100% no-repeat;
+  pointer-events: none;
+}
+
+.cr-sumud-still > .pixel-image {
+  aspect-ratio: 16 / 10;
+}
+
+.cr-sumud-still > img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* said under a stand-in, so the garden's sky is not taken for the game's art */
+.cr-sumud-still > figcaption {
+  margin-top: var(--s-1);
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: var(--t-caption);
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+}
+
+.cr-sumud-words > h3 {
+  margin-top: var(--s-1);
+  font-size: calc(var(--t-h3) * 1.5);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.cr-sumud-words > h3 + p {
+  max-width: 38ch;
+  margin-top: var(--s-2);
+  font-size: var(--t-lead);
+  line-height: 1.5;
+}
+
+.cr-sumud-words > .px-link {
+  margin-top: var(--s-3);
+}
+
+@media (min-width: 768px) {
+  .cr-sumud {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    align-items: center;
+    gap: var(--s-5);
+    padding: calc(var(--px) * 10);
+  }
+}
+
+/* --- the kite ----------------------------------------------------------------------
+ * A kite sprite and its line, one art pixel to a page pixel. The line hangs
+ * from the knot under the kite's left corner, down and to the left. */
+.cr-kite {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.cr-kite-line {
+  position: absolute;
+  left: calc((var(--knot-x) - var(--run)) * var(--px));
+  top: calc(var(--knot-y) * var(--px));
+  width: calc(var(--run) * var(--px));
+  height: calc(var(--drop) * var(--px));
+  max-width: none;
+}
+
+/* --- what clients said: notes pinned along the carpet's border ---------------------- */
+.cr-proof {
+  position: relative;
+}
+
+/* The kite stands in the sky beside the heading; its line comes down to the border's top edge, near its end. */
+.cr-proof-kite {
+  position: absolute;
+  right: calc(var(--px) * 10);
+  /* the line ends 20 art pixels below the kite's own box, on the border's top edge */
+  bottom: calc(100% + var(--px) * 20);
+  color: var(--ink-3);
+}
+
+/* a phone's heading fills its line and leaves the kite no sky of its own; the band just above has two */
+@media (max-width: 767px) {
+  .cr-proof-kite {
+    display: none;
+  }
+}
+
+.cr-notes {
+  position: relative;
+  display: grid;
+  gap: var(--s-4);
+  /* the top of each note lies over the border's lower edge, where its pin goes through */
+  margin-top: calc(var(--px) * -5);
+  padding-inline: var(--s-2);
+}
+
+.cr-notes > li {
+  position: relative;
+}
+
+/* A brass pin: a plus of five pixels with a lit middle, and its shadow. */
+.cr-pin {
+  position: absolute;
+  left: calc(50% - var(--px) / 2);
+  top: var(--px);
+  z-index: 1;
+  width: var(--px);
+  height: var(--px);
+  background: #f8d85b;
+  box-shadow:
+    var(--px) 0 0 var(--brass),
+    calc(var(--px) * -1) 0 0 var(--brass),
+    0 var(--px) 0 var(--brass),
+    0 calc(var(--px) * -1) 0 var(--brass),
+    var(--px) var(--px) 0 rgb(54 25 12 / 0.35),
+    calc(var(--px) * 2) var(--px) 0 rgb(54 25 12 / 0.2),
+    var(--px) calc(var(--px) * 2) 0 rgb(54 25 12 / 0.2);
+}
+
+@supports (width: round(1px, 1px)) {
+  .cr-pin {
+    left: round(50%, var(--px));
+  }
+}
+
+.cr-notes .pe-body {
+  padding-top: calc(var(--px) * 9);
+}
+
+/* an opening quotation mark, set by the pen */
+.cr-notes .pe-body::before {
+  content: '\201c';
+  display: block;
+  height: calc(var(--px) * 6);
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 56px;
+  line-height: 1;
+}
+
+.cr-notes .pe-body > p:first-child {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.28;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.cr-byline {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  margin-top: var(--s-3);
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: var(--t-caption);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+
+.cr-byline::before {
+  content: '';
+  flex: none;
+  width: calc(var(--px) * 4);
+  height: var(--hair);
+  background: currentColor;
+}
+
+@media (min-width: 768px) {
+  .cr-notes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  /* not all pinned at one height, but every one over the border's edge */
+  .cr-notes > li:nth-child(3n + 2) {
+    margin-top: calc(var(--px) * 2);
+  }
+
+  .cr-notes > li:nth-child(3n) {
+    margin-top: var(--px);
+  }
+}

@@ -49,9 +49,18 @@ export function spriteArt(name: SpriteName, staging: SplitId): SpriteArt {
   return (own[name] ?? other[name])!;
 }
 
-/** A crop of the garden that stands in for a picture not supplied yet. Both stagings have every name. */
-export function thumbArt(name: ThumbName, staging: SplitId): { src: string; w: number; h: number } {
-  return { src: artUrl(`${staging}/thumb-${name}.png`), ...sectionArt.thumb };
+export interface PictureArt {
+  src: string;
+  w: number;
+  h: number;
+  /** The point of the picture a frame looks at, in art pixels. */
+  focus: readonly [number, number];
+}
+
+/** A view of the garden that stands in for a picture not supplied yet: the whole scene, and the point of it to look at. Both stagings have every name. */
+export function thumbArt(name: ThumbName, staging: SplitId): PictureArt {
+  const { garden, views } = sectionArt[staging];
+  return { src: artUrl(garden.src), w: garden.w, h: garden.h, focus: views[name] };
 }
 
 /** The garden without its owner, for the scene band, and where its living details go. */

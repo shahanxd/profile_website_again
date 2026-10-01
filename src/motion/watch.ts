@@ -1,3 +1,5 @@
+import { useEffect, useRef, type RefObject } from 'react';
+
 /**
  * Shared watchers, so the page keeps a handful of observers and one scroll
  * listener however many sprites, seams and headings are on it.
@@ -5,30 +7,70 @@
 
 type Seen = (visible: boolean) => void;
 
-const observers = new Map<string, { observer: IntersectionObserver; seen: Map<Element, Seen> }>();
+/** What is known about one watched element: whether it is on screen (once the observer has said), and who wants to hear. */
+interface Watched {
+  visible?: boolean;
+  listeners: Set<Seen>;
+}
+
+/** One observer for each margin in use. */
+const observers = new Map<string, { observer: IntersectionObserver; watched: Map<Element, Watched> }>();
 
 /**
- * Calls `seen` whenever the element comes into or leaves the window. `margin`
- * grows or shrinks the window (IntersectionObserver's rootMargin). Returns a
- * way to stop.
+ * Calls `seen` whenever the element comes into or leaves the window, starting
+ * with where it is now. `margin` grows or shrinks the window
+ * (IntersectionObserver's rootMargin). Returns a way to stop.
  */
 export function watch(element: Element, seen: Seen, margin = '0px'): () => void {
   let entry = observers.get(margin);
   if (!entry) {
-    const map = new Map<Element, Seen>();
+    const watched = new Map<Element, Watched>();
     const observer = new IntersectionObserver(
-      (changes) => changes.forEach((change) => map.get(change.target)?.(change.isIntersecting)),
+      (changes) => {
+        for (const change of changes) {
+          const state = watched.get(change.target);
+          if (!state) continue;
+          state.visible = change.isIntersecting;
+          state.listeners.forEach((listener) => listener(change.isIntersecting));
+        }
+      },
       { rootMargin: margin },
     );
-    entry = { observer, seen: map };
+    entry = { observer, watched };
     observers.set(margin, entry);
   }
-  entry.seen.set(element, seen);
-  entry.observer.observe(element);
+  const { observer, watched } = entry;
+  const known = watched.get(element);
+  const state: Watched = known ?? { listeners: new Set() };
+  if (!known) {
+    watched.set(element, state);
+    observer.observe(element);
+  } else if (state.visible !== undefined) {
+    // The observer has already reported on this element and will not again until it changes: pass on what it said.
+    const { visible } = state;
+    queueMicrotask(() => state.listeners.has(seen) && seen(visible));
+  }
+  state.listeners.add(seen);
   return () => {
-    entry.seen.delete(element);
-    entry.observer.unobserve(element);
+    state.listeners.delete(seen);
+    if (state.listeners.size) return;
+    watched.delete(element);
+    observer.unobserve(element);
   };
+}
+
+/**
+ * Marks an element with data-on while it is on screen. Small loops written in
+ * the stylesheet run only on marked elements, so nothing animates unseen.
+ */
+export function useOnScreen<T extends Element>(): RefObject<T | null> {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    return watch(element, (visible) => element.toggleAttribute('data-on', visible));
+  }, []);
+  return ref;
 }
 
 const updates = new Set<() => void>();
