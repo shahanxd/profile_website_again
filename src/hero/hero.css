@@ -165,6 +165,13 @@
   }
 }
 
+/* A tall window that is not very tall (a tablet held upright) has less sky above the bough: smaller type keeps the copy clear of the lantern. */
+@media (orientation: portrait) and (min-aspect-ratio: 2/3) {
+  .hero-copy h1 {
+    font-size: calc(var(--k) * 9);
+  }
+}
+
 /*
  * Words that change with the split. They are type, not pixels, so they do
  * not dissolve: they fade out while the old page is being covered and back in
@@ -194,6 +201,8 @@
   --screen-ink: #14122b;
   --screen-pick: #f9cf7a;
   position: absolute;
+  left: var(--menu-x);
+  top: var(--menu-y);
   z-index: 10;
   overflow: hidden;
   padding-top: var(--k);

@@ -6,7 +6,7 @@ import { getSplitState, useSplit } from '../split/store';
 import type { GardenEngine } from './engine';
 import { frameView, watchDeviceSize } from './engine/camera';
 import { framing } from './scene/framing';
-import { MENU_MIN_WIDTH, TabletMenu, type MenuBox } from './TabletMenu';
+import { MENU_MIN_WIDTH, TabletMenu } from './TabletMenu';
 import './hero.css';
 
 const percent = (fraction: number) => `${fraction * 100}%`;
@@ -66,8 +66,8 @@ export function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GardenEngine | null>(null);
   const [live, setLive] = useState(false);
-  // Where the tablet prop's screen is, when it is big enough to carry the menu.
-  const [menu, setMenu] = useState<MenuBox | null>(null);
+  // The size of the tablet prop's screen in CSS pixels, when it is big enough to carry the menu.
+  const [menu, setMenu] = useState<[number, number] | null>(null);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current!;
@@ -106,8 +106,16 @@ export function Hero() {
         engine.setMotion(getSplitState().motion);
 
         engine.onLayout(({ hotspots }) => {
-          const next = hotspots.menu && hotspots.menu[2] >= MENU_MIN_WIDTH ? hotspots.menu : null;
-          setMenu((was) => (was && next && was.every((value, i) => value === next[i]) ? was : next));
+          const screen = hotspots.menu;
+          if (!screen) return setMenu(null);
+          // The screen moves with the pointer. Its place goes straight to the stylesheet, so the menu steps in the
+          // same frame as the canvas; React only hears about its size, which changes with the window alone.
+          sectionRef.current?.style.setProperty('--menu-x', `${screen[0]}px`);
+          sectionRef.current?.style.setProperty('--menu-y', `${screen[1]}px`);
+          const [x, y, width, height] = screen;
+          // No menu where the screen is too small to read, or out of frame (a tall window does not show the prop at all).
+          const usable = width >= MENU_MIN_WIDTH && x >= 0 && y >= 0 && x + width <= canvas.clientWidth && y + height <= canvas.clientHeight;
+          setMenu((was) => (!usable ? null : was && was[0] === width && was[1] === height ? was : [width, height]));
         });
 
         // Layers follow a mouse. Touch is left alone: a finger on the scene is someone scrolling.
@@ -170,7 +178,7 @@ export function Hero() {
         <Text as="h1" copy={hero.line} className="lowercase" />
         <Text as="p" copy={hero.sub} />
       </div>
-      {live && menu && <TabletMenu split={split} box={menu} />}
+      {live && menu && <TabletMenu split={split} size={menu} />}
     </section>
   );
 }

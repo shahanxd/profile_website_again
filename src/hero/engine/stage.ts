@@ -197,8 +197,6 @@ export function frameAt(anim: Anim | undefined, frames: number, t: number, seed:
   }
   const step = Math.floor(t * anim.fps);
   if (anim.mode === 'loop') return step % frames;
-  // flicker: any frame, but the very first step rests, so the still frame shows the flame steady
-  if (anim.mode === 'flicker') return step ? Math.floor(hash(seed, step) * frames) : 0;
   const there = step % (frames * 2 - 2);
   return there < frames ? there : frames * 2 - 2 - there;
 }

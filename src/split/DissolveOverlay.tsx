@@ -132,8 +132,23 @@ export function DissolveOverlay() {
       last = state;
     };
 
+    close();
     configureTransition(COVER_MS, REVEAL_MS);
     const unsubscribe = subscribeSplit(onChange);
+
+    // Going back or forward between the splits, the browser would first jump to wherever the page was scrolled
+    // when that history entry was left: the wrong place (the splits' sections differ in height), and before the
+    // cover is up. The place is kept here instead. The browser gets the job back whenever the page is left, so
+    // a reload, or coming back from another site, still lands where it was.
+    const keepPlaceHere = () => {
+      history.scrollRestoration = 'manual';
+    };
+    const leavePlaceToBrowser = () => {
+      history.scrollRestoration = 'auto';
+    };
+    keepPlaceHere();
+    window.addEventListener('pageshow', keepPlaceHere);
+    window.addEventListener('pagehide', leavePlaceToBrowser);
 
     // The ?dissolve= switch: hold the cells where they would be at that moment, for as long as the page is open.
     const held = heldDissolve(last.split);
@@ -153,6 +168,9 @@ export function DissolveOverlay() {
 
     return () => {
       unsubscribe();
+      window.removeEventListener('pageshow', keepPlaceHere);
+      window.removeEventListener('pagehide', leavePlaceToBrowser);
+      leavePlaceToBrowser();
       cancelAnimationFrame(request);
       cancelAnimationFrame(holding);
       configureTransition(0, 0);

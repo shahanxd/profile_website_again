@@ -65,8 +65,8 @@ const layers: Layer[] = [
     depth: 0.75,
     at: [0, 0],
     attachTo: { layer: 'tree', point: 'lantern' },
-    // lit at dusk: the flame gutters now and then (the light it throws is in `lights` below)
-    when: { tech: { anim: { mode: 'flicker', fps: 3 } } },
+    // lit at dusk: the flame burns steady and gutters now and then (the light it throws is in `lights` below)
+    when: { tech: { anim: { mode: 'random-hold', fps: 4, every: 2.5 } } },
   },
   { id: 'canopy', sprite: 'canopy', z: 52, depth: 0.75, at: [0, 0] },
 
@@ -181,7 +181,7 @@ const emitters: Emitter[] = [
     count: 5,
     area: [112, 136, 150, 22],
     move: { kind: 'wander', reach: [10, 5], period: [9, 17] },
-    anim: { mode: 'random-hold', fps: 5, every: 4.5 },
+    anim: { mode: 'random-hold', fps: 5, every: 6 },
   },
   // tech: two moths round the lit lantern
   {
@@ -194,7 +194,7 @@ const emitters: Emitter[] = [
     area: [0, 0, 0, 0],
     from: { layer: 'lantern', point: 'flame' },
     move: { kind: 'orbit', radius: [9, 5], period: [5, 8] },
-    anim: { mode: 'loop', fps: 6 },
+    anim: { mode: 'loop', fps: 4 },
   },
   // both: light catching the water, in the rill either side of the pool and in the pool itself
   ...(
@@ -220,7 +220,7 @@ const emitters: Emitter[] = [
 
 const lights: Light[] = [
   // dusk: the pool of light under the lantern, on the carpet and the lawn round it; it dips when the flame does
-  { in: ['tech'], at: [176, 173], radius: [46, 14], depth: 1, flame: { layer: 'lantern', strength: [1, 0.94, 0.97] } },
+  { in: ['tech'], at: [176, 173], radius: [46, 14], depth: 1, flame: { layer: 'lantern', strength: [1, 0.96, 0.98] } },
 ];
 
 const hotspots: Hotspot[] = [

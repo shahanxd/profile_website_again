@@ -10,7 +10,7 @@ A profile site for Shahan (@shahanxd) with exactly two sides, **creative** and *
 
 Milestone 1 (foundation) is done. Milestones are listed in `docs/PLAN.md`.
 
-**The engine commits on `dev` are snapshots of work still in progress.** Two background agents are building the hero engine (now in its behaviour stage: particles, the split dissolve, the tablet menu) and reviewing the art clean-up tooling. At the latest commit `npm run check` passes and all 50 grey-box sprites pass `node tools/art/pixelize.mjs check`, but nobody has yet reviewed the engine in a browser, so `main` still points at the foundation commit.
+**The engine commits on `dev` are snapshots of work still in progress.** The art clean-up tooling has finished its build and its review pass. The hero engine has finished its core and behaviour stages and is in its review-and-fix pass. At the latest commit `npm run check` passes and all 50 grey-box sprites pass `node tools/art/pixelize.mjs check`, but nobody has yet reviewed the engine in a browser, so `main` still points at the foundation commit.
 
 Working now:
 

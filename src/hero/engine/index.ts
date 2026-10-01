@@ -122,18 +122,21 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
   const layoutListeners = new Set<(layout: Layout) => void>();
 
   const readout = switches.debug ? createReadout(canvas) : null;
-  const meter = { ticks: 0, draws: 0, cpu: 0, worst: 0, since: performance.now(), calls: 0, lines: ['', ''] };
+  const meter = { ticks: 0, draws: 0, cpu: 0, worst: 0, since: performance.now(), calls: 0, count: 0, rates: '', cost: '' };
 
   /** One still frame at time 0 with nothing in the air: weak devices, and visitors who have asked for stillness. */
   const still = () => !frozen && (tier.still || !motion);
+  /** Scene time is passing. */
+  const ticking = () => !frozen && !still() && !paused;
   /** A dissolve that is really under way, not one held in place by the ?dissolve= switch. */
   const dissolving = () => dissolve !== null && switches.dissolve === undefined;
 
   /** Runs the loop only while there is something to animate and someone to see it. */
   function sync() {
-    const animating = (!frozen && !still() && !paused) || dissolving();
-    if (animating && seen && !document.hidden && !gl.isContextLost()) loop.start();
+    const was = loop.running;
+    if ((ticking() || dissolving()) && seen && !document.hidden && !gl.isContextLost()) loop.start();
     else loop.stop();
+    if (readout && was !== loop.running) report();
   }
 
   function updateShift() {
@@ -221,24 +224,24 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
       meter.cpu += took;
       meter.worst = Math.max(meter.worst, took);
       meter.calls = renderer.calls;
+      meter.count = count;
     }
     if (Math.round(shift[0]) !== shiftShown[0] || Math.round(shift[1]) !== shiftShown[1]) {
       shiftShown[0] = Math.round(shift[0]);
       shiftShown[1] = Math.round(shift[1]);
       notifyLayout();
     }
-    if (readout) report(count);
+    if (readout) report();
   }
 
-  function report(count: number) {
+  /** The ?debug=1 readout. Rates are averaged over half a second; the frame time is of frames that were drawn. */
+  function report() {
     const now = performance.now();
-    if (now - meter.since >= 500 || !meter.lines[0]) {
+    // While the loop runs, wait for a full window. A stopped loop draws single frames: report each as it comes.
+    if (meter.draws && (now - meter.since >= 500 || !loop.running)) {
       const seconds = Math.max(now - meter.since, 1) / 1000;
-      const each = meter.draws ? meter.cpu / meter.draws : 0;
-      meter.lines = [
-        `loop ${Math.round(meter.ticks / seconds)} fps · drawn ${Math.round(meter.draws / seconds)}/s`,
-        `frame ${each.toFixed(2)} ms on the cpu, worst ${meter.worst.toFixed(2)}`,
-      ];
+      meter.rates = `loop ${Math.round(meter.ticks / seconds)} fps · drawn ${Math.round(meter.draws / seconds)}/s`;
+      meter.cost = `frame ${(meter.cpu / meter.draws).toFixed(2)} ms on the cpu, worst ${meter.worst.toFixed(2)}`;
       meter.ticks = meter.draws = meter.cpu = meter.worst = 0;
       meter.since = now;
     }
@@ -249,14 +252,15 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
       `${split}${held} · ${quality}${mode}`,
       `k ${view.k} · view ${view.w}x${view.h} at ${view.x},${view.y}`,
       `canvas ${canvas.width}x${canvas.height} device px`,
-      ...meter.lines,
-      `${count} sprites and particles · ${meter.calls} draw calls`,
+      loop.running ? meter.rates || 'loop starting' : 'loop stopped',
+      meter.cost,
+      `${meter.count} sprites and particles · ${meter.calls} draw calls`,
     ]);
   }
 
   const loop = createLoop(tier.fps, (dt) => {
     // Scene time and the pointer stand still during a dissolve between two still frames.
-    if (!frozen && !still() && !paused) {
+    if (ticking()) {
       time += dt;
       const ease = 1 - Math.exp(-dt / 0.12);
       pointer.x += (pointer.toX - pointer.x) * ease;
@@ -385,8 +389,9 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
   if (switches.debug) {
     exposeForDebug({
       engine,
-      /** Draws the current frame again and reads the canvas back: RGBA, rows from the bottom up. */
-      snapshot() {
+      /** Draws the frame again (moving scene time to `at` first, when given) and reads the canvas back: RGBA, rows from the bottom up. */
+      snapshot(at?: number) {
+        if (at !== undefined) time = at;
         stale = true;
         render();
         const pixels = new Uint8Array(canvas.width * canvas.height * 4);

@@ -13,9 +13,7 @@ export type Vec2 = [number, number];
 export type Anim =
   | { mode: 'loop' | 'pingpong'; fps: number }
   /** Rests on the first frame and plays the strip through once, at an uneven moment, about every `every` seconds. */
-  | { mode: 'random-hold'; fps: number; every: number }
-  /** Jumps to a frame picked at random, `fps` times a second: a flame. */
-  | { mode: 'flicker'; fps: number };
+  | { mode: 'random-hold'; fps: number; every: number };
 
 /** A slow whole-pixel rock around the resting position. */
 export interface Sway {

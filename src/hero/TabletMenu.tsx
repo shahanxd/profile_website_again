@@ -9,19 +9,18 @@ import type { SplitId } from '../split/types';
  */
 export const MENU_MIN_WIDTH = 96;
 
-/** Where the screen is: x, y, width, height in CSS pixels from the hero's top-left. */
-export type MenuBox = [number, number, number, number];
-
 /**
  * The site menu's real links, laid over the screen of the tablet prop in the
- * garden. The engine says where the screen is; the stylesheet draws a plate
- * in the screen's colour with one row per link, all in whole art pixels.
+ * garden. The engine says where the screen is (the hero passes its place on
+ * as --menu-x and --menu-y); the stylesheet draws a plate in the screen's
+ * colour with one row per link, all in whole art pixels. `size` is the
+ * screen's width and height in CSS pixels.
  */
-export function TabletMenu({ split, box }: { split: SplitId; box: MenuBox }) {
+export function TabletMenu({ split, size }: { split: SplitId; size: [number, number] }) {
   const items = navFor(split);
   const ref = useRef<HTMLElement>(null);
   const labels = items.map((item) => item.label).join('|');
-  const width = box[2];
+  const [width, height] = size;
 
   // One type size for every row: the stylesheet's, or smaller if the longest label needs it.
   useLayoutEffect(() => {
@@ -49,7 +48,7 @@ export function TabletMenu({ split, box }: { split: SplitId; box: MenuBox }) {
       ref={ref}
       aria-label="sections, on the tablet in the garden"
       className="garden-menu hero-swap font-pixel"
-      style={{ left: box[0], top: box[1], width, height: box[3] }}
+      style={{ width, height }}
     >
       <ul>
         {items.map((item) => (
