@@ -3,8 +3,10 @@
 // them once per variant below, and reports the share of pixels that come back
 // exactly as drawn: same colour and same transparency.
 //   node tools/art/test-fixtures.mjs [--out dir] [--min 97]
+// Then it breaks three of the fixture assets on purpose and checks that the
+// build warns about each.
 // Exits 1 when the default settings recover less than --min percent of all
-// pixels, or when a build or its self-check fails.
+// pixels, when a build or its self-check fails, or when a warning is missing.
 import { spawnSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -26,6 +28,12 @@ const VARIANTS = {
   box: { downscale: 'box' },
 };
 const METHODS = Object.keys(VARIANTS);
+// A fixture asset, the one thing wrong with it, and a phrase from the warning it must draw.
+const MUST_WARN = [
+  ['fx-parrot', { size: [15, 10] }, 'which makes it 14 wide'], // one pixel too wide
+  ['fx-cup', { cell: [0.2, 0, 2 / 3, 0.5] }, 'edge of its "cell"'], // the cell takes in part of the pot
+  ['fx-pot', { key: '#b08030' }, 'is close to brass'], // keyed on a colour the pot is made of
+];
 
 const config = await makeFixtures();
 const palette = await loadPalette(config.palette);
@@ -55,14 +63,18 @@ async function compare(dir, id) {
   return result;
 }
 
+/** Runs the real build on a variant of the fixture assets, into its own folder under outRoot. */
+async function build(name, assets) {
+  const dir = path.join(outRoot, name.replaceAll(' ', '-'));
+  await mkdir(dir, { recursive: true });
+  const configFile = path.join(dir, 'config.json');
+  await writeFile(configFile, JSON.stringify({ ...config, assets }, null, 2));
+  return { dir, run: spawnSync(process.execPath, ['tools/art/pixelize.mjs', 'build', '--config', configFile, '--out', dir], { encoding: 'utf8' }) };
+}
+
 const results = {};
 for (const how of METHODS) {
-  const dir = path.join(outRoot, how.replaceAll(' ', '-'));
-  await mkdir(dir, { recursive: true });
-  const variant = { ...config, assets: config.assets.map((a) => ({ ...a, ...VARIANTS[how] })) };
-  const configFile = path.join(dir, 'config.json');
-  await writeFile(configFile, JSON.stringify(variant, null, 2));
-  const run = spawnSync(process.execPath, ['tools/art/pixelize.mjs', 'build', '--config', configFile, '--out', dir], { encoding: 'utf8' });
+  const { dir, run } = await build(how, config.assets.map((a) => ({ ...a, ...VARIANTS[how] })));
   if (run.status !== 0) {
     console.error(run.stdout + run.stderr);
     console.error(`build failed for the "${how}" variant`);
@@ -93,8 +105,11 @@ if (confusions.size) {
 }
 console.log(`\nbuilt sprites are in ${outRoot}`);
 
+const { run: broken } = await build('must warn', MUST_WARN.map(([id, change]) => ({ ...config.assets.find((a) => a.id === id), ...change })));
+const silent = MUST_WARN.filter(([, , phrase]) => !broken.stderr.includes(phrase));
+console.log(`broken on purpose: ${MUST_WARN.length - silent.length} of ${MUST_WARN.length} drew their warning`);
+for (const [id, change] of silent) console.error(`  no warning for ${id} with ${JSON.stringify(change)}`);
+
 const overall = (sum('mode').same / sum('mode').total) * 100;
-if (overall < min) {
-  console.error(`the default settings recovered ${overall.toFixed(1)}% of all cleaned pixels; the bar is ${min}%`);
-  process.exit(1);
-}
+if (overall < min) console.error(`the default settings recovered ${overall.toFixed(1)}% of all cleaned pixels; the bar is ${min}%`);
+if (overall < min || silent.length) process.exit(1);

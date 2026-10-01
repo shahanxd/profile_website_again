@@ -75,7 +75,7 @@ async function cleanFrame(asset, { palette, rawCache }, report) {
   if (Math.min(...scale) < 1) throw new Error(`the art is ${box.x1 - box.x0}x${box.y1 - box.y0} px, smaller than "size" [${asset.size}]`);
   if (key && asset.cell) {
     const cut = sidesTouched(crop, speck);
-    if (cut.length) report.warn(`the art touches the ${cut.join(' and ')} of its "cell": the cell cuts through an object, or takes in part of its neighbour`);
+    if (cut.length) report.warn(`the art touches the ${cut.join(', ')} edge of its "cell": the cell cuts through an object, or takes in part of its neighbour`);
   }
 
   // Step 4: the grid lines, per axis. "size" decides how many cells there
@@ -170,20 +170,21 @@ function finish(item, frames, { palette, trim, source }, report) {
 /**
  * A staging file is shown in place of the shared file of the same id, so a
  * new sprite can be hidden by an old one, or leave an old one unreachable.
- * Returns those old sprites as [{ name, by }]. `has(name)` says whether a
- * sprite file will exist once the build is written.
+ * Returns those old sprites as [{ name, by }]. `claimed` holds the names the
+ * config asks for; `has(name)` says whether a sprite file will exist once the
+ * build is written.
  */
-function staleSprites(built, config, has) {
-  const claimed = new Set([...Object.keys(config.pixelmaps), ...config.assets.map((a) => (a.staging ? `${a.id}.${a.staging}` : a.id))]);
+function staleSprites(built, claimed, has) {
   const stale = [];
   for (const b of built) {
     const staged = STAGINGS.map((s) => `${b.id}.${s}`);
     let names = [];
     // a new shared file: staging files that nothing in the config asks for would hide it
-    if (b.files[0].name === b.id) names = staged.filter((name) => !claimed.has(name));
+    if (b.files[0].name === b.id) names = staged.filter((name) => !claimed.includes(name));
     // both stagings have their own file: the shared one can no longer be shown
     else if (staged.every(has)) names = [b.id];
-    stale.push(...names.map((name) => ({ name, by: b })));
+    // (both staging sprites of an id point at the same shared file: list it once)
+    stale.push(...names.filter((name) => !stale.some((old) => old.name === name)).map((name) => ({ name, by: b })));
   }
   return stale;
 }
@@ -278,9 +279,12 @@ export async function build(opts) {
   // knows: a file it has no line for was put there by hand and is not ours.
   const manifest = await readManifest(outDir);
   const onDisk = (await readdir(outDir).catch(() => [])).filter((f) => f.endsWith('.png')).map((f) => f.slice(0, -4));
-  const stale = staleSprites(built, config, (name) => names.includes(name) || onDisk.includes(name));
+  const claimed = [...Object.keys(config.pixelmaps), ...assetNames];
+  const stale = staleSprites(built, claimed, (name) => names.includes(name) || onDisk.includes(name));
   for (const { name, by } of stale) {
-    if (onDisk.includes(name) && !manifest[name]) {
+    if (names.includes(name)) {
+      report.error(`${name}.png would never be shown: both stagings have their own sprite`);
+    } else if (onDisk.includes(name) && !manifest[name]) {
       report.error(`${path.join(outDir, `${name}.png`)} would be shown in place of the new ${by.files[0].name}.png, and has no line in sprites.json; move or delete it by hand`);
     }
   }

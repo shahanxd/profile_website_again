@@ -51,7 +51,7 @@ node tools/art/pixelize.mjs palette --fit art/raw/keyart/creative-01.png
 
 What to ask the image tool for, so the clean-up has something it can work with.
 
-- **Background.** Flat magenta `#ff00ff` for almost everything: no palette colour is near it. Pure blue `#0000ff` for pink and purple subjects (the blossom canopy, petals), because generated pinks wander towards magenta. Not blue for anything navy: `blueviolet` and `indigo`, the character's sweater, sit close to a blue key and `build` warns about it. Never green (the parrot, the lawn), white, grey or black (parchment, marble, outlines). A real transparent PNG is as good as a key colour and is detected by itself.
+- **Background.** Flat magenta `#ff00ff` for almost everything: no palette colour is near it. Pure blue `#0000ff` for pink and purple subjects (the blossom canopy, petals), because generated pinks wander towards magenta. Not blue for anything navy: `blueviolet`, the colour of the character's sweater, sits close to a blue key, and `build` warns when an asset that may use it is keyed on blue. Never green (the parrot, the lawn), white, grey or black (parchment, marble, outlines). A real transparent PNG is as good as a key colour and is detected by itself.
 - **Say in the prompt:** one flat solid background colour, no shadow, no ground, no glow, no gradient, no text; the whole subject inside the frame with a margin around it; hard pixel edges.
 - **Resolution.** At least 12 raw pixels per art pixel, 16 to 24 if the tool allows. A 50-pixel-wide character should fill most of a 1024 px image. Below about 7 the result needs repainting. Take PNG over JPEG or WebP when offered.
 - **One object per image,** or a sheet with clear gaps: objects closer than 3% of the image's longer side are taken for one object.
@@ -154,7 +154,7 @@ A warning means the sprite was built but probably not as meant. With `--strict` 
 | only N% of the border is one colour | `"auto"` found no background. Set `"key": "none"` for a plate, or give the key as `"#rrggbb"`. |
 | the key is close to (colours) | The background is too near colours the asset uses; those parts get holes. Regenerate on another key, or list fewer `ramps`. |
 | the art's own pixels are N px wide, which makes it M wide | `size` disagrees with the art. Use the size `inspect` suggests. It also appears when a shadow or a stray object has widened the subject's box. |
-| the art touches the (side) of its "cell" | The cell cuts through the object or includes a piece of its neighbour. Use the cell `inspect` prints. |
+| the art touches the (side) edge of its "cell" | The cell cuts through the object or includes a piece of its neighbour. Use the cell `inspect` prints. |
 | trimmed from A to B | Rows or columns at the edge came out empty, often a thin detail that was lost (see `cover`). |
 | (override) is not used | A repaint has no asset of that name in the config. |
 
@@ -238,11 +238,40 @@ What the numbers say:
 - `despeckle: 1` did not help on these inputs (99.1% overall, against 99.3% without) because it also removes real one-pixel highlights. It is off by default.
 - Despill makes no difference to `mode` or `center`, which never look at a cell's rim. It is what keeps `box` usable: without it `box` drops from 95.8% to about 94%.
 
+The test ends by breaking three fixture assets on purpose (a `size` one pixel too wide, a `cell` that takes in part of the next object, a key colour the subject is made of) and fails unless `build` warns about each.
+
+### Harder inputs
+
+A second set of inputs, made to break the tool rather than to resemble a good generation, was run once by hand on 2026-10-01. They are not part of `test-fixtures.mjs`. Exact pixels recovered with default settings unless a setting is named:
+
+| Input | Result |
+|---|---|
+| A different scale on each axis (figure at 19.4 x 14.2, parrot at 11.3 x 17.9) | 100% |
+| 320x180 plate with a dithered sky at 6x, no key colour | 100% with `"key": "none"`; left on `"auto"` it warns and gives the same result |
+| The same plate with a flat dusk sky | 100%, with a warning. Before `"auto"` asked for three quarters of the border it took the sky for a key and cut out half the plate without a word |
+| Pink blossom with no outline, on magenta and on blue | 100% on both |
+| Sheet with two objects 1.2 art pixels apart | 100% with a `cell` each; `component` counts the two as one |
+| Soft drop shadow at 45% | 100% |
+| Drop shadow at 80% | 72%, warned (the shadow widens the box); 94% with `"shadow": 0.5` |
+| Transparent PNG with soft edges and a 40% shadow | 100% |
+| Sprite in neighbouring darks (ink, plum, umber, indigo) | 100%; 2 of 112 pixels wrong at JPEG 60 with heavier blur |
+| 9x8 sprite at 23x, at 12x (PNG) and at 7.4x (WebP) | 100% |
+| Kite with a one-pixel string | 100% |
+| Kite whose string is drawn 0.4 of a pixel wide | string lost, warned (`trimmed`); 100% with `"cover": 0.25` |
+| White, grey checkerboard and graded-magenta backgrounds, green subject | 100% here, because the subject has no light colours; `inspect` flags white as close to eighteen palette colours |
+| The kite rotated by 1.5 degrees | 100% |
+| 16-bit, indexed, CMYK and Display P3 files | 100% (colour profiles are not applied) |
+
 ## Known limits
 
 - **Colours closer than the art's drift.** The rough figure's 39 misses (of 2350 pixels) are almost all dark neighbours: ink, plum and indigo are 0.05 to 0.08 apart in OKLab, and a fake pixel whose colour is that far off reads as its neighbour. Listing fewer ramps for an asset removes the confusion at its source.
 - **Tiny art pixels.** Below about 7 raw px per art pixel, blur reaches the middle of every cell and the subject's box is only good to the nearest pixel. The 6.3x test gets 2 of its 140 pixels wrong. Ask the image tool for at least 12 px per art pixel.
-- **`size` is trusted.** The tool cannot know how many pixels the artist meant. It warns when the art's own grid disagrees by more than 15%; a `size` that is off by one or two in fifty goes through, with one column or row doubled or lost. Use the size `inspect` suggests.
+- **`size` is trusted.** The tool cannot know how many pixels the artist meant. It warns when the art's own grid clearly disagrees, which catches one pixel out in sixteen or fewer; in a sprite fifty wide a `size` that is one out goes through, with one column or row doubled or lost. Use the size `inspect` suggests.
+- **Shadows.** A faint shadow on the key is removed. A dark one becomes part of the sprite and stretches its box, so everything lands on the wrong grid. `"shadow": 0.5` removes most of it; where the shadow meets the subject a few dark pixels stay. A translucent shadow in a transparent PNG is kept once it is more than half opaque. Ask for no shadow.
+- **Detail finer than the art's pixels.** A line drawn thinner than the grid covers less than half of each cell and is dropped. `cover` brings it back, at the price of a slightly fatter silhouette. Parts of one image drawn at a different pixel size, or a grid that is rotated or in perspective by more than a degree or two, are not handled; neither has been tested.
+- **The key is a colour, not a shape.** Anything in the subject that is the key colour becomes a hole, wherever it is. That is why the background must be far from every colour the subject uses, and why `build` warns when it is not.
+- **Plates need as many raw pixels as sprites do.** The 400x200 world at 6 px per art pixel is a 2400 px image, more than most tools give. Generate the scene as its layers, each at full density.
 - **Heavy JPEG.** At quality 60, JPEG's own 8 px blocks can be mistaken for the art's grid by `inspect`; it then reports a low strength and says the size is a guess. `build` ignores a low-strength reading.
 - **Things the art never had.** Anti-aliased curves, in-between colours and inconsistent shading in the generated image are cleaned to the nearest palette colour, not redrawn. That is what `overrides/` is for.
-- **`compose` is a preview.** Flat sky, flat lawn, first frame only, no parallax. The hero engine is the real renderer.
+- **Entries nothing builds any more.** Removing an asset from the config leaves its sprite and its `sprites.json` line in place. Delete both by hand.
+- **`compose` is a preview.** Flat sky, flat lawn, first frame only, no parallax, and a shared `emissive` sprite is shown as it is by day. The hero engine is the real renderer.
