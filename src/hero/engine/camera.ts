@@ -24,6 +24,13 @@ export interface View {
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
+/**
+ * Added before rounding the camera to a whole art pixel. Whole-number screen sizes land exactly half way between
+ * two pixels all the time (a phone 390 wide at 3x does), and there the stylesheet's arithmetic and this file's
+ * can fall to different sides. A sum this far off the half-way mark cannot. hero.css adds the same.
+ */
+const NUDGE = 0.03;
+
 export function frameView(deviceW: number, deviceH: number, framing: Framing): View {
   const [worldW] = framing.world;
   const portrait = deviceH > deviceW;
@@ -39,8 +46,8 @@ export function frameView(deviceW: number, deviceH: number, framing: Framing): V
   const [from, to] = portrait ? framing.portrait.span : [0, worldW];
   // (Written the way hero.css has to write it, on the true screen size and with the same rounding,
   // so the stylesheet's first paint and this agree to the pixel.)
-  const x = clamp(-Math.round((target[0] * deviceW) / k - framing.focus[0]), from, to - w);
-  const y = Math.max(-Math.round((target[1] * deviceH) / k - framing.focus[1]), framing.floor - h);
+  const x = clamp(-Math.round((target[0] * deviceW) / k - framing.focus[0] + NUDGE), from, to - w);
+  const y = Math.max(-Math.round((target[1] * deviceH) / k - framing.focus[1] + NUDGE), framing.floor - h);
   return { k, w, h, x, y, slack: Math.min(x, worldW - w - x) };
 }
 
@@ -50,27 +57,32 @@ export function frameView(deviceW: number, deviceH: number, framing: Framing): V
  * CSS size times devicePixelRatio can be a pixel out at fractional ratios.
  */
 export function watchDeviceSize(element: Element, onSize: (width: number, height: number) => void): () => void {
-  const measure = (exact?: ResizeObserverSize) => {
+  let exact: ResizeObserverSize | undefined;
+  const measure = () => {
     const box = element.getBoundingClientRect();
     const width = Math.round(box.width * devicePixelRatio);
     const height = Math.round(box.height * devicePixelRatio);
-    // The exact figure only ever differs from the estimate by rounding. If it is further off, the browser
-    // is emulating a device (DevTools phone mode reports unscaled sizes here) and the estimate is the truth.
-    const trusted = exact && Math.abs(exact.inlineSize - width) <= 1 && Math.abs(exact.blockSize - height) <= 1;
-    if (trusted) onSize(exact.inlineSize, exact.blockSize);
-    else onSize(width, height);
+    // The exact figure only ever differs from the estimate by rounding. If it is further off it is out of date,
+    // or the browser is emulating a device (DevTools phone mode reports unscaled sizes here): use the estimate.
+    if (exact && Math.abs(exact.inlineSize - width) <= 1 && Math.abs(exact.blockSize - height) <= 1) {
+      onSize(exact.inlineSize, exact.blockSize);
+    } else onSize(width, height);
   };
-  const estimate = () => measure();
-  const observer = new ResizeObserver((entries) => measure(entries[0].devicePixelContentBoxSize?.[0]));
+  const observer = new ResizeObserver((entries) => {
+    exact = entries[0].devicePixelContentBoxSize?.[0];
+    measure();
+  });
   try {
     observer.observe(element, { box: 'device-pixel-content-box' });
   } catch {
-    observer.observe(element); // Safari: no exact box, and zoom changes arrive as window resizes
-    window.addEventListener('resize', estimate);
+    observer.observe(element); // Safari: no exact box
   }
-  estimate();
+  // Zooming the browser changes the size of a CSS pixel and nothing else: a window-filling element keeps its
+  // device pixels, so the observer has nothing to report. The window does report it, as a resize.
+  window.addEventListener('resize', measure);
+  measure();
   return () => {
     observer.disconnect();
-    window.removeEventListener('resize', estimate);
+    window.removeEventListener('resize', measure);
   };
 }

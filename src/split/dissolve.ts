@@ -10,10 +10,13 @@ import type { SplitId } from './types';
  * and the order in which blocks turn from this file, so they move as one.
  */
 
-/** The old page is covered for this long, the split is swapped underneath, then the new page is uncovered. */
+/**
+ * The old page is covered for this long, the split is swapped underneath,
+ * then the new page is uncovered. The garden turns during the cover, block
+ * for block with it, so one edge crosses the whole window.
+ */
 export const COVER_MS = 420;
 export const REVEAL_MS = 520;
-export const TOTAL_MS = COVER_MS + REVEAL_MS;
 
 /** A dissolve block is this many art pixels square. */
 export const BLOCK = 4;
@@ -54,12 +57,6 @@ export function spreadFrom(origin: [number, number], left: number, top: number, 
   return { x: (x - left) / cell, y: (y - top) / cell, reach: Math.max(reach / cell, 1) };
 }
 
-/** Which half of a whole switch a moment falls in (0..1 over cover plus reveal), and how far through that half it is. */
-export function halfAt(progress: number): { covering: boolean; local: number } {
-  const ms = progress * TOTAL_MS;
-  return ms < COVER_MS ? { covering: true, local: ms / COVER_MS } : { covering: false, local: (ms - COVER_MS) / REVEAL_MS };
-}
-
 /**
  * Where a switch to `target` spreads from: the point that was pressed, or,
  * when nothing was (the back button), the link that leads to that split.
@@ -71,17 +68,21 @@ export function originFor(target: SplitId, pressed: [number, number] | null): [n
 }
 
 /**
- * The ?dissolve=<0..1> switch holds a switch part-way so it can be looked at
- * as a still. The page under the cells is always the address's own split:
- * before the swap you see this split being covered on its way to the other
- * one; after it, this split being uncovered on its way in from the other one.
+ * The ?dissolve=<0..1> switch holds a switch part-way (0..1 over cover plus
+ * reveal) so it can be looked at as a still. The page under the cells is
+ * always the address's own split: in the first half you see this split being
+ * covered on its way to the other one; in the second, this split being
+ * uncovered on its way in from the other one. `local` is how far through
+ * that half the moment is, and `to` the split being switched to.
  */
-export function heldDissolve(split: SplitId): { progress: number; from: SplitId; to: SplitId } | null {
+export function heldDissolve(split: SplitId): { covering: boolean; local: number; to: SplitId } | null {
   const value = new URLSearchParams(location.search).get('dissolve');
   const progress = value ? Number(value) : NaN;
   if (!(progress >= 0 && progress <= 1)) return null;
-  const other = otherSplit(split);
-  return halfAt(progress).covering ? { progress, from: split, to: other } : { progress, from: other, to: split };
+  const ms = progress * (COVER_MS + REVEAL_MS);
+  return ms < COVER_MS
+    ? { covering: true, local: ms / COVER_MS, to: otherSplit(split) }
+    : { covering: false, local: (ms - COVER_MS) / REVEAL_MS, to: split };
 }
 
 /**

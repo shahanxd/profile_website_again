@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import {
   COVER_MS,
-  halfAt,
   heldDissolve,
   markPlace,
   originFor,
@@ -111,6 +110,16 @@ export function DissolveOverlay() {
       request = requestAnimationFrame(frame);
     };
 
+    // A switch that nothing was pressed for is the back or forward button. The browser then also moves the page
+    // to wherever it was scrolled when that history entry was left: the wrong place (the splits' sections differ
+    // in height), and before the cover is up. It does so after telling the page, so the place is noted now and
+    // put back before the next paint. Every other step through history is left to the browser, which is what
+    // makes Back after a menu link return to where the visitor was.
+    const stayPut = () => {
+      const top = scrollY;
+      requestAnimationFrame(() => window.scrollTo({ top, behavior: 'instant' }));
+    };
+
     const onChange = () => {
       const state = getSplitState();
       // The store has swapped the split but React has not redrawn the page yet: note what is being read.
@@ -123,6 +132,7 @@ export function DissolveOverlay() {
             origin = originFor(state.target, state.origin);
             colour = SPLITS[state.target].themeColor; // the theme colour is the page's background colour
             open();
+            if (!state.origin) stayPut();
           }
           started = performance.now();
           // Painted here and now, not a frame later: at the swap this is what hides the page while it changes.
@@ -136,30 +146,15 @@ export function DissolveOverlay() {
     configureTransition(COVER_MS, REVEAL_MS);
     const unsubscribe = subscribeSplit(onChange);
 
-    // Going back or forward between the splits, the browser would first jump to wherever the page was scrolled
-    // when that history entry was left: the wrong place (the splits' sections differ in height), and before the
-    // cover is up. The place is kept here instead. The browser gets the job back whenever the page is left, so
-    // a reload, or coming back from another site, still lands where it was.
-    const keepPlaceHere = () => {
-      history.scrollRestoration = 'manual';
-    };
-    const leavePlaceToBrowser = () => {
-      history.scrollRestoration = 'auto';
-    };
-    keepPlaceHere();
-    window.addEventListener('pageshow', keepPlaceHere);
-    window.addEventListener('pagehide', leavePlaceToBrowser);
-
     // The ?dissolve= switch: hold the cells where they would be at that moment, for as long as the page is open.
     const held = heldDissolve(last.split);
     if (held) {
-      const { covering, local } = halfAt(held.progress);
       colour = SPLITS[held.to].themeColor;
       const hold = () => {
         if (getSplitState().phase === 'idle') {
           origin = originFor(held.to, null);
           open();
-          paint(covering, local);
+          paint(held.covering, held.local);
         }
         holding = requestAnimationFrame(hold);
       };
@@ -168,9 +163,6 @@ export function DissolveOverlay() {
 
     return () => {
       unsubscribe();
-      window.removeEventListener('pageshow', keepPlaceHere);
-      window.removeEventListener('pagehide', leavePlaceToBrowser);
-      leavePlaceToBrowser();
       cancelAnimationFrame(request);
       cancelAnimationFrame(holding);
       configureTransition(0, 0);

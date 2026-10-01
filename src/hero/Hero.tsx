@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { Text } from '../components/Text';
 import { site } from '../content/site';
-import { BLOCK, COVER_MS, heldDissolve, originFor, REVEAL_MS, selfDissolving, TOTAL_MS } from '../split/dissolve';
+import { BLOCK, COVER_MS, heldDissolve, originFor, REVEAL_MS, selfDissolving } from '../split/dissolve';
 import { getSplitState, useSplit } from '../split/store';
 import type { GardenEngine } from './engine';
 import { frameView, watchDeviceSize } from './engine/camera';
@@ -39,8 +39,18 @@ function placeScene(hero: HTMLElement, poster: HTMLImageElement, canvas: HTMLCan
   const view = frameView(deviceW, deviceH, framing);
   const cssPerArt = (canvas.getBoundingClientRect().width / deviceW) * view.k;
   hero.style.setProperty('--k', `${cssPerArt}px`);
-  poster.style.left = `${-view.x * cssPerArt}px`;
-  poster.style.top = `${(framing.poster.top - view.y) * cssPerArt}px`;
+  // Scaled and moved as a transform, from its natural size. The stylesheet's way (left, top, width and height)
+  // goes through layout, which keeps lengths to 1/64 px and, in some browser modes, snaps boxes to whole CSS
+  // pixels: in Chrome's phone emulation at a pixel ratio of 3 that put the poster one device pixel below the
+  // canvas. A transform is applied as given.
+  Object.assign(poster.style, {
+    left: '0',
+    top: '0',
+    width: `${framing.world[0]}px`,
+    height: `${framing.poster.height}px`,
+    transformOrigin: '0 0',
+    transform: `translate(${-view.x * cssPerArt}px, ${(framing.poster.top - view.y) * cssPerArt}px) scale(${cssPerArt})`,
+  });
   selfDissolving.cell = BLOCK * cssPerArt; // the page overlay matches its cells to the garden's dissolve blocks
 }
 
@@ -94,16 +104,17 @@ export function Hero() {
       try {
         const { createGardenEngine } = await import('./engine');
         if (gone) return;
-        const held = heldDissolve(getSplitState().split); // the ?dissolve= switch
-        const start = held?.from ?? getSplitState().split;
-        const engine = await createGardenEngine(canvas, { split: start, motion: getSplitState().motion, onLive });
+        const { split: startSplit, motion: startMotion } = getSplitState();
+        const engine = await createGardenEngine(canvas, { split: startSplit, motion: startMotion, onLive });
         if (gone) return engine.destroy();
         engineRef.current = engine;
         cleanups.push(() => engine.destroy());
         // Catch up with anything that changed while the atlas was loading.
-        if (held) engine.transition(held.to, originFor(held.to, null), TOTAL_MS);
-        else engine.setSplit(getSplitState().split);
+        engine.setSplit(getSplitState().split);
         engine.setMotion(getSplitState().motion);
+        // The ?dissolve= switch. Past the swap the garden has finished turning, so there is nothing to hold.
+        const held = heldDissolve(getSplitState().split);
+        if (held?.covering) engine.transition(held.to, originFor(held.to, null), COVER_MS, held.local);
 
         engine.onLayout(({ hotspots }) => {
           const screen = hotspots.menu;
@@ -142,11 +153,12 @@ export function Hero() {
     };
   }, []);
 
-  // A switch with a cover and a reveal is one dissolve in the garden, start to finish. Anything else is a cut.
-  useEffect(() => {
+  // While the rest of the page is being covered the garden dissolves, in step with the cover. Anything else is
+  // a cut. A layout effect, so that the garden and the cover start in the same frame.
+  useLayoutEffect(() => {
     const engine = engineRef.current;
     if (!engine) return;
-    if (phase === 'covering' && target) engine.transition(target, originFor(target, origin), TOTAL_MS);
+    if (phase === 'covering' && target) engine.transition(target, originFor(target, origin), COVER_MS);
     else if (phase === 'idle') engine.setSplit(split);
   }, [split, phase, target, origin]);
 

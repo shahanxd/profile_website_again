@@ -34,30 +34,57 @@
 /*
  * An art pixel is a whole number of device pixels, so where the browser can
  * round, --k is rounded to whole device pixels. CSS cannot read the pixel
- * ratio as a number; --dpx (one device pixel) is set from the common ratios.
+ * ratio as a number; --dpx (one device pixel) is set from the common ratios
+ * (screens, and the steps of browser zoom).
+ *
+ * Whole-number screen sizes put these sums exactly on a rounding boundary all
+ * the time: a phone 390 wide at 3x has its camera half way between two art
+ * pixels. Arithmetic in CSS is not exact, so there it could round the other
+ * way from camera.ts. Each sum is therefore nudged off the boundary first, by
+ * less than the smallest step it can really take: --tiny for k, --nudge for
+ * the camera (NUDGE in camera.ts). The results are those of camera.ts.
  */
 @supports (width: round(1px, 1px)) {
   .hero {
     --dpx: 1px;
-    --k: max(round(up, 100vw / var(--world-w), var(--dpx)), round(100svh / var(--land-h), var(--dpx)));
+    --tiny: calc(var(--dpx) * 0.001);
+    --k: max(
+      round(up, 100vw / var(--world-w) - var(--tiny), var(--dpx)),
+      round(100svh / var(--land-h) + var(--tiny), var(--dpx))
+    );
     /* the camera sits on whole art pixels */
+    --nudge: calc(var(--k) * 0.03);
     --poster-left: clamp(
-      round(up, 100% - var(--span-to) * var(--k), var(--k)),
-      round(var(--target-x) - var(--focus-x) * var(--k), var(--k)),
+      round(up, 100% - var(--span-to) * var(--k) - var(--nudge), var(--k)),
+      round(var(--target-x) - var(--focus-x) * var(--k) + var(--nudge), var(--k)),
       0px - var(--span-from) * var(--k)
     );
     --poster-top: min(
-      round(var(--target-y) - var(--focus-y) * var(--k), var(--k)),
-      round(up, 100% - var(--floor) * var(--k), var(--k))
+      round(var(--target-y) - var(--focus-y) * var(--k) + var(--nudge), var(--k)),
+      round(up, 100% - var(--floor) * var(--k) - var(--nudge), var(--k))
     );
   }
 
   @media (orientation: portrait) {
     .hero {
-      --k: round(up, 100vw / var(--port-w), var(--dpx));
+      --k: round(up, 100vw / var(--port-w) - var(--tiny), var(--dpx));
     }
   }
 
+  /* prettier-ignore */
+  @media (min-resolution: 0.5dppx) { .hero { --dpx: calc(1px / 0.5); } }
+  /* prettier-ignore */
+  @media (min-resolution: 0.66dppx) { .hero { --dpx: calc(1px * 3 / 2); } }
+  /* prettier-ignore */
+  @media (min-resolution: 0.75dppx) { .hero { --dpx: calc(1px / 0.75); } }
+  /* prettier-ignore */
+  @media (min-resolution: 0.79dppx) { .hero { --dpx: calc(1px / 0.8); } }
+  /* prettier-ignore */
+  @media (min-resolution: 0.89dppx) { .hero { --dpx: calc(1px / 0.9); } }
+  /* prettier-ignore */
+  @media (min-resolution: 1dppx) { .hero { --dpx: 1px; } }
+  /* prettier-ignore */
+  @media (min-resolution: 1.09dppx) { .hero { --dpx: calc(1px / 1.1); } }
   /* prettier-ignore */
   @media (min-resolution: 1.25dppx) { .hero { --dpx: calc(1px / 1.25); } }
   /* prettier-ignore */
@@ -83,6 +110,8 @@
 /*
  * The poster paints with the page; the canvas takes over once the engine has
  * drawn a frame. Both sit on the same pixel grid, so nothing moves when it does.
+ * (The size and place given to the poster below are the first paint's. Once
+ * the script has measured the screen it sets them again, as a transform.)
  */
 .garden {
   position: absolute;

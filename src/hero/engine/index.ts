@@ -33,11 +33,6 @@ export interface GardenOptions {
 
 /** Where the scene currently sits on the page, for laying DOM over it. */
 export interface Layout {
-  view: View;
-  /** CSS pixels per art pixel. */
-  cssPerArt: number;
-  /** How far a depth-1 layer is currently pushed by the pointer, in whole art pixels. */
-  shift: Vec2;
   /** Each hotspot in the manifest: x, y, width, height in CSS pixels from the canvas's top-left. */
   hotspots: Record<string, [number, number, number, number]>;
 }
@@ -48,9 +43,10 @@ export interface GardenEngine {
   /**
    * Switch staging with the pixel dissolve, spreading from `origin`: a point in the window, in CSS pixels
    * (what a click reports), or null for the middle of the canvas. If the scene cannot be seen the dissolve
-   * waits; call setSplit when the switch is over to make sure of the result.
+   * waits; call setSplit when the switch is over to make sure of the result. With `holdAt` (0..1) the
+   * dissolve stays at that point instead of running: the ?dissolve= switch.
    */
-  transition(to: SplitId, origin: Vec2 | null, durationMs: number): void;
+  transition(to: SplitId, origin: Vec2 | null, durationMs: number, holdAt?: number): void;
   /** Where the pointer is over the scene, -1..1 each way, (0, 0) at the centre. */
   setPointer(x: number, y: number): void;
   /** Stop and start the clock. The engine already stops by itself while it is off screen or the tab is hidden. */
@@ -100,7 +96,7 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
 
   let renderer = createRenderer(gl, atlas, strips);
   let split = options.split;
-  let dissolve: { to: SplitId; origin: Vec2 | null; start: number; duration: number } | null = null;
+  let dissolve: { to: SplitId; origin: Vec2 | null; start: number; duration: number; hold?: number } | null = null;
   let view: View | null = null;
   let cssPerDevice = 1;
   let time = switches.freeze ?? 0; // seconds of scene time
@@ -128,13 +124,13 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
   const still = () => !frozen && (tier.still || !motion);
   /** Scene time is passing. */
   const ticking = () => !frozen && !still() && !paused;
-  /** A dissolve that is really under way, not one held in place by the ?dissolve= switch. */
-  const dissolving = () => dissolve !== null && switches.dissolve === undefined;
-
-  /** Runs the loop only while there is something to animate and someone to see it. */
+  /**
+   * Runs the loop only while there is something to animate and someone to see it. A dissolve counts even when
+   * it is held in place: its edge is measured from a point in the window, so it moves as the page scrolls.
+   */
   function sync() {
     const was = loop.running;
-    if ((ticking() || dissolving()) && seen && !document.hidden && !gl.isContextLost()) loop.start();
+    if ((ticking() || dissolve) && seen && !document.hidden && !gl.isContextLost()) loop.start();
     else loop.stop();
     if (readout && was !== loop.running) report();
   }
@@ -160,7 +156,7 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
       const [x, y, w, h] = hotspotAt(stages[split], id, sceneTime(), shift)!;
       hotspots[id] = [(x - view.x) * scale, (y - view.y) * scale, w * scale, h * scale];
     }
-    return { view, cssPerArt: scale, shift: [Math.round(shift[0]), Math.round(shift[1])], hotspots };
+    return { hotspots };
   }
 
   function notifyLayout() {
@@ -188,7 +184,7 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
   function render() {
     if (!view || gl.isContextLost()) return;
     const began = performance.now();
-    if (dissolving() && began - dissolve!.start >= dissolve!.duration) land();
+    if (dissolve && dissolve.hold === undefined && began - dissolve.start >= dissolve.duration) land();
     updateShift();
     const count = compose(0, split);
 
@@ -206,7 +202,7 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
         const box = canvas.getBoundingClientRect();
         const origin = dissolve.origin ?? [box.left + box.width / 2, box.top + box.height / 2];
         fade = {
-          progress: switches.dissolve ?? (began - dissolve.start) / dissolve.duration,
+          progress: dissolve.hold ?? (began - dissolve.start) / dissolve.duration,
           spread: spreadFrom(origin, box.left, box.top, BLOCK * view.k * cssPerDevice),
         };
       }
@@ -247,7 +243,7 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
     }
     if (!view) return;
     const mode = frozen ? ` · frozen at ${time}s` : still() ? ' · still' : '';
-    const held = dissolve ? ` > ${dissolve.to}${switches.dissolve !== undefined ? ` held at ${switches.dissolve}` : ''}` : '';
+    const held = dissolve ? ` > ${dissolve.to}${dissolve.hold !== undefined ? ` held at ${dissolve.hold.toFixed(2)}` : ''}` : '';
     readout?.show([
       `${split}${held} · ${quality}${mode}`,
       `k ${view.k} · view ${view.w}x${view.h} at ${view.x},${view.y}`,
@@ -272,15 +268,21 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
   });
 
   function onSize(width: number, height: number) {
-    if (!width || !height || (width === canvas.width && height === canvas.height && view)) return;
-    canvas.width = width;
-    canvas.height = height;
-    cssPerDevice = canvas.getBoundingClientRect().width / width;
-    view = frameView(width, height, framing);
-    renderer.resize(view);
-    // Setting the size clears the canvas; draw again before the browser paints.
-    stale = true;
-    render();
+    if (!width || !height) return;
+    const perDevice = canvas.getBoundingClientRect().width / width;
+    const sameSize = view && width === canvas.width && height === canvas.height;
+    if (sameSize && perDevice === cssPerDevice) return;
+    // Browser zoom changes the CSS pixel and leaves the canvas as it was: only what is laid over it has to move.
+    cssPerDevice = perDevice;
+    if (!sameSize) {
+      canvas.width = width;
+      canvas.height = height;
+      view = frameView(width, height, framing);
+      renderer.resize(view);
+      // Setting the size clears the canvas; draw again before the browser paints.
+      stale = true;
+      render();
+    }
     notifyLayout();
   }
 
@@ -323,11 +325,11 @@ export async function createGardenEngine(canvas: HTMLCanvasElement, options: Gar
       sync();
     },
 
-    transition(to, origin, durationMs) {
+    transition(to, origin, durationMs, holdAt) {
       land(); // a dissolve already under way jumps to its end first
       if (to === split) return;
       if (durationMs <= 0) return engine.setSplit(to);
-      dissolve = { to, origin, start: performance.now(), duration: durationMs };
+      dissolve = { to, origin, start: performance.now(), duration: durationMs, hold: holdAt };
       render();
       sync();
     },

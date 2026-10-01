@@ -47,10 +47,11 @@ export function TabletMenu({ split, size }: { split: SplitId; size: [number, num
     <nav
       ref={ref}
       aria-label="sections, on the tablet in the garden"
-      className="garden-menu hero-swap font-pixel"
+      className="garden-menu font-pixel"
       style={{ width, height }}
     >
-      <ul>
+      {/* the labels change with the split, so they fade across a switch; the plate stays, it is the tablet's screen */}
+      <ul className="hero-swap">
         {items.map((item) => (
           <li key={item.slot}>
             <a href={`#${item.slot}`}>
