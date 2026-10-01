@@ -109,6 +109,8 @@ export interface ShowcaseItem {
   /** Said under the stand-in picture, where it could otherwise be taken for the piece's own art. */
   standIn?: Copy;
   href?: string;
+  /** A recognition the piece won, said on its card: "winner, canva on campus 2026". */
+  award?: string;
   tone?: 'plain';
   /** False until the owner supplies the real piece; until then the title says what will go here. */
   confirmed: boolean;
@@ -156,7 +158,14 @@ export interface CreativeContent extends SplitBase {
   /** `lines` is what a group says under its name (keyed by the kind of piece it holds). */
   work: Headed & { intro?: Copy; lines?: Partial<Record<ShowcaseItem['kind'], Copy>>; items: ShowcaseItem[] };
   /** `note` is said once above the notes: who the words are from. */
-  proof: Headed & { note?: Copy; testimonials: Testimonial[] };
+  proof: Headed & { note?: Copy; testimonials: Testimonial[]; honours?: Honour[] };
+}
+
+/** A recognition on the creative side, listed under the client's words. */
+export interface Honour {
+  title: string;
+  detail?: string;
+  year?: string;
 }
 
 export interface SiteContent {

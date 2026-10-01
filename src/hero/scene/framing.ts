@@ -21,5 +21,6 @@ export const framing: Framing = {
   // A phone shows the carpet group, under the tree: the cats sit at world x 9 and 10, the side table ends
   // at 156. It takes the largest pixel that keeps all of that in view, so it shows 146 columns or a few more.
   portrait: { width: 146, height: 280 },
-  parallax: [3, 1],
+  // Off: the owner found whole layers stepping with the pointer abrupt. The engine still supports it; a value above 0 brings it back.
+  parallax: [0, 0],
 };

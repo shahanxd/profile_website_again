@@ -129,15 +129,8 @@ export function Hero() {
         // The ?dissolve= switch. Past the swap the garden has finished turning, so there is nothing to hold.
         const held = heldDissolve(getSplitState().split);
         if (held?.covering) engine.transition(held.to, originFor(held.to, null), COVER_MS, held.local);
-
-        // Layers follow a mouse. Touch is left alone: a finger on the scene is someone scrolling.
-        const follow = (event: PointerEvent) => {
-          if (event.pointerType !== 'mouse') return;
-          const box = canvas.getBoundingClientRect();
-          engine.setPointer(((event.clientX - box.left) / box.width) * 2 - 1, ((event.clientY - box.top) / box.height) * 2 - 1);
-        };
-        window.addEventListener('pointermove', follow, { passive: true });
-        cleanups.push(() => window.removeEventListener('pointermove', follow));
+        // The garden does not follow the pointer: at this pixel size, whole layers (the tree, the figure, the
+        // lawn) stepping a pixel at a time read as the scene jolting. Only the small things in it move.
       } catch (error) {
         // No WebGL2, or the atlas did not load: the poster is the scene. No engine took the sprites, so let them go.
         atlas.then((loaded) => loaded.image.close()).catch(() => {});

@@ -100,6 +100,7 @@ export function Designs({ items }: { items: ShowcaseItem[] }) {
                   {pages && <p className="cr-meta">{pages}</p>}
                 </div>
                 {item.role && <Text as="p" copy={item.role} />}
+                {item.award && <p className="cr-award">{item.award}</p>}
               </div>
             </li>
           );

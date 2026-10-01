@@ -13,10 +13,11 @@ import { Kite } from './Kite';
  * the border's end. The words are the client's own, exactly as written, so
  * they keep their capitals; who wrote them is said once above the notes and
  * again, briefly, under each. The notes are told how many they are, so they
- * fall into even rows whatever their lengths.
+ * fall into even rows whatever their lengths. Under them, a short list of
+ * what the work has been recognised for.
  */
 export function CreativeProof() {
-  const { note, testimonials } = site.creative.proof;
+  const { note, testimonials, honours } = site.creative.proof;
 
   return (
     <div className="cr-proof">
@@ -42,6 +43,23 @@ export function CreativeProof() {
           </Reveal>
         ))}
       </ul>
+      {honours && honours.length > 0 && (
+        <div className="cr-honours">
+          <h3 className="eyebrow">and along the way</h3>
+          <ul>
+            {honours.map((honour, i) => (
+              <Reveal key={honour.title} as="li" order={i}>
+                <span className="spark" aria-hidden="true" />
+                <span className="cr-honour-text">
+                  <span className="cr-honour-title">{honour.title}</span>
+                  {honour.detail && <span className="cr-honour-detail">{honour.detail}</span>}
+                </span>
+                {honour.year && <span className="cr-meta">{honour.year}</span>}
+              </Reveal>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

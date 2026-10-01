@@ -1108,3 +1108,60 @@ html[data-motion='on'] .cr-lightbox[open] > .pe {
     margin-top: var(--px);
   }
 }
+
+/*
+ * A recognition a design won, under its caption: the label face in the
+ * accent colour, on a hairline of the same colour, so it reads as a mark on
+ * the piece rather than another line of description.
+ */
+.cr-award {
+  display: inline-block;
+  margin-top: var(--s-1);
+  padding: calc(var(--px) / 2) var(--px) 0;
+  border-top: var(--hair) solid var(--accent);
+  color: var(--accent);
+  font-family: var(--font-pixel);
+  font-size: var(--t-label);
+  line-height: 1.4;
+}
+
+/* What the creative work has been recognised for: a short list under the client's words. */
+.cr-honours {
+  margin-top: var(--s-6);
+  max-width: 760px;
+}
+
+.cr-honours ul {
+  margin-top: var(--s-2);
+  border-top: var(--hair) solid var(--line);
+}
+
+.cr-honours li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  padding-block: var(--s-2);
+  border-bottom: var(--hair) solid var(--line);
+}
+
+.cr-honours .spark {
+  align-self: center;
+}
+
+.cr-honour-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.cr-honour-title {
+  display: block;
+  font-size: var(--t-lead);
+  line-height: 1.35;
+}
+
+.cr-honour-detail {
+  display: block;
+  margin-top: calc(var(--px) / 2);
+  color: var(--ink-3);
+  font-size: var(--t-small);
+}

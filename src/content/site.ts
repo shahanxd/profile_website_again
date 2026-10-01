@@ -50,10 +50,10 @@ function video(id: keyof typeof media.videos, title: string, line: string, poste
 }
 
 /** A design: every page of it, the first being its cover. `what` is the piece in a few words, for the alt text of each page. */
-function design(id: keyof typeof media.designs, title: string, line: string, what: string): ShowcaseItem {
+function design(id: keyof typeof media.designs, title: string, line: string, what: string, award?: string): ShowcaseItem {
   const { pages } = media.designs[id];
   const alt = (i: number) => (pages.length > 1 ? `${what}, page ${i + 1} of ${pages.length}` : what);
-  return { id, kind: 'design', title, role: line, pages: pages.map((page, i) => ({ ...page, alt: alt(i) })), confirmed: true };
+  return { id, kind: 'design', title, role: line, award, pages: pages.map((page, i) => ({ ...page, alt: alt(i) })), confirmed: true };
 }
 
 /** A photograph, under the owner's own title for it. */
@@ -369,12 +369,14 @@ export const site: SiteContent = {
           'smoke house',
           'an identity for a hyderabadi bbq food box: mark, colours, packaging. a group project.',
           'the smoke house brand identity',
+          'winner, canva on campus design competition 2026',
         ),
         design(
           'nothing-3a',
           'phone (3a), community edition draft',
           "my design draft for nothing's community edition.",
           'a design draft for the nothing phone (3a) community edition',
+          'global finalist, nothing community edition',
         ),
         photo('burns-and-melts', 'burns and melts until it doesnt', 'a candle flame up close, blue where it meets the wick'),
         photo('butter-aint-flying', 'butter aint flying', 'an orange butterfly on the corner of an instant photo of a white butterfly, in the dark'),
@@ -433,6 +435,15 @@ export const site: SiteContent = {
           quote: 'Very reliable in video editing emergency.',
           name: 'a returning client, five stars',
           confirmed: true,
+        },
+      ],
+      // the owner's own account of these, october 2026
+      honours: [
+        { title: 'canva on campus design competition: winner', detail: 'smoke house, a group project', year: '2026' },
+        { title: 'nothing phone (3a) community edition: global finalist', detail: 'my design draft for the phone' },
+        {
+          title: 'nothing community reviewer',
+          detail: 'one of the people nothing trusts with a device early, to present it and write about it honestly',
         },
       ],
     },

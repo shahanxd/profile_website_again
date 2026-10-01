@@ -545,16 +545,26 @@ html[data-motion='on'] .tech-lamp-head[data-on] > .glyph {
     margin-top: 0;
   }
 
-  /* With a picture: the picture on the left, and all the words in one column beside it. */
+  /* With a picture: the picture across the top of the card, the words in their two columns under it. */
+  li[data-wide][data-pictured] .tech-card {
+    row-gap: var(--s-3);
+  }
+
+  li[data-pictured] .tech-card-picture {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+  }
+}
+
+/* Where there is room, the picture stands on the left and all the words in one column beside it. */
+@media (min-width: 1000px) {
   li[data-wide][data-pictured] .tech-card {
     grid-template: 'picture head' auto 'picture rest' 1fr / minmax(0, 6fr) minmax(0, 5fr);
-    gap: var(--s-3) var(--s-5);
     align-items: start;
   }
 
   li[data-pictured] .tech-card-picture {
     grid-area: picture;
-    margin-bottom: 0;
   }
 
   li[data-pictured] .tech-card-head {

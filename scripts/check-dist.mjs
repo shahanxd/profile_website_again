@@ -10,11 +10,11 @@ const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'd
 // Every page has the same four sections (so a split switch keeps its place) and the band between them.
 const everyPage = ['<h1', 'id="about"', 'id="work"', 'id="proof"', 'id="contact"', 'class="band"', 'sumud'];
 
-// Placeholders ship (see src/content/types.ts), so each page is also expected to carry its stand-ins.
+// The owner's real content, one telling line of it per page, so a page built from stale content fails.
 const expectations = {
-  'index.html': { split: 'creative', has: ["a client's words will sit here", 'a video edit will sit here'], lacks: ['metagross'] },
-  'creative.html': { split: 'creative', has: ["a client's words will sit here", 'a video edit will sit here'], lacks: ['metagross'] },
-  'tech.html': { split: 'tech', has: ['metagross', 'cassetto', 'the next line goes here', 'not yet'], lacks: ['a video edit will sit here'] },
+  'index.html': { split: 'creative', has: ['videographer', 'showreel', 'a returning client', 'global finalist'], lacks: ['metagross'] },
+  'creative.html': { split: 'creative', has: ['videographer', 'showreel', 'a returning client', 'global finalist'], lacks: ['metagross'] },
+  'tech.html': { split: 'tech', has: ['metagross', 'cassetto', 'project sparrow', '700+', 'shahan-ayyubi-resume.pdf'], lacks: ['showreel'] },
 };
 
 const failures = [];
