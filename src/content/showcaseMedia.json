@@ -180,5 +180,12 @@
       "seconds": 7.6,
       "megabytes": 1.8
     }
+  },
+  "stills": {
+    "sumud": {
+      "src": "/showcase/still/sumud.webp",
+      "width": 1600,
+      "height": 900
+    }
   }
 }

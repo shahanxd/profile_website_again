@@ -43,6 +43,10 @@ DESIGNS = {
     "nothing-3a": "nothing 3a CE Draft.pdf",
     "smoke-house": "poster made w a friend cs research.pdf",
 }
+STILLS = {
+    # single pictures that are not photographs: the key art for sumud
+    "sumud": "sumud key art",
+}
 PHOTOS = {
     "burns-and-melts": "burns and melts until it doesnt.jpg",
     "butter-aint-flying": "butter aint flying",
@@ -81,6 +85,14 @@ def build_designs() -> dict:
             pages.append(save_webp(image, OUT / "design" / f"{name}-{number}.webp", width))
         out[name] = {"pages": pages}
         print(f"design {name}: {len(pages)} page(s)")
+    return out
+
+
+def build_stills() -> dict:
+    out = {}
+    for name, file in STILLS.items():
+        out[name] = save_webp(Image.open(find(file)), OUT / "still" / f"{name}.webp", 1600, 84)
+        print(f"still {name}")
     return out
 
 
@@ -180,6 +192,7 @@ def main() -> None:
     index = json.loads(INDEX.read_text()) if INDEX.exists() else {}
     index["designs"] = build_designs()
     index["photos"] = build_photos()
+    index["stills"] = build_stills()
     if not args.skip_video:
         index["videos"] = build_videos(args.ffmpeg, args.ffmpeg_frames or args.ffmpeg)
     INDEX.write_text(json.dumps(index, indent=2) + "\n")
